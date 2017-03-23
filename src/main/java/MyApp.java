@@ -1,14 +1,17 @@
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -19,69 +22,60 @@ import javafx.stage.Stage;
  */
 public class MyApp extends Application{
 
+    Ofb ofb;
+
     public static void launchMyApp(String[] args) {
         launch(args);
     }
-    
+
     @Override
     public void start(Stage myStage) throws Exception {
         myStage.setTitle("OFB");
-        //Image ico = new Image("resources\\images\\iconLogo.png");
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Открытие файла");
-        
+
         Label label = new Label("MyApp");
+        label.setTooltip(new Tooltip("Активный статус"));
         Label lblShifr = new Label("Шифрование");
         Label lblDefifr = new Label("Дешифрование");
         TextField text1 = new TextField();
         text1.setPromptText("Введите имя файла");
+        text1.setTooltip(new Tooltip("Введите файл для шифрования"));
         TextField text2 = new TextField();
         text2.setPromptText("Введите имя файла");
-        
+        text2.setTooltip(new Tooltip("Введите файл для дешифрования"));
+
         Button btnCh1 = new Button("Open...");
-        btnCh1.setOnAction(new EventHandler<ActionEvent>() {
- 
-            @Override
-            public void handle(ActionEvent event) {
-                FileChooserMethod(myStage, fileChooser, text1);
-            }
+        btnCh1.setOnAction((ActionEvent event) -> {
+            FileChooserMethod(myStage, fileChooser, text1, "Открытие файла");
         });
-               
+        btnCh1.setTooltip(new Tooltip("Проводник выбора файлов"));
+
         Button btnCh2 = new Button();
         btnCh2.setText("Open...");
-        btnCh2.setOnAction(new EventHandler<ActionEvent>() {
- 
-            @Override
-            public void handle(ActionEvent event) {
-                FileChooserMethod(myStage, fileChooser, text2);
-            }
+        btnCh2.setOnAction((ActionEvent event) -> {
+            FileChooserMethod(myStage, fileChooser, text2, "Открыте зашифрованного файла");
         });
-        
+        btnCh2.setTooltip(new Tooltip("Проводник выбора файлов"));
+
         Button btnEnc = new Button();
         btnEnc.setText("Encrypt");
-        btnEnc.setOnAction(new EventHandler<ActionEvent>() {
- 
-            @Override
-            public void handle(ActionEvent event) {
-                encrypt(text1, label);
-            }
+        btnEnc.setOnAction((ActionEvent event) -> {
+            encrypt(text1, label);
         });
-        
+        btnEnc.setTooltip(new Tooltip("Run"));
+
         Button btnDec = new Button();
         btnDec.setText("Decrypt");
-        btnDec.setOnAction(new EventHandler<ActionEvent>() {
- 
-            @Override
-            public void handle(ActionEvent event) {
-                decrypt(text2, label);
-            }
+        btnDec.setOnAction((ActionEvent event) -> {
+            decrypt(text2, label);
         });
-        
+        btnDec.setTooltip(new Tooltip("Run"));
+
         Separator separator1 = new Separator();
         Separator separator2 = new Separator();
         separator1.setPrefWidth(290);
         separator2.setPrefWidth(290);
-                
+
         FlowPane root = new FlowPane(10, 10);
         root.setAlignment(Pos.CENTER);
         root.getChildren().addAll(
@@ -101,7 +95,8 @@ public class MyApp extends Application{
         myStage.show();
     }
 
-    private void FileChooserMethod(Stage myStage, FileChooser fileChooser, TextField text) {
+    private void FileChooserMethod(Stage myStage, FileChooser fileChooser, TextField text, String textmsg) {
+        fileChooser.setTitle(textmsg);
         File file = fileChooser.showOpenDialog(myStage);
         if (file != null) {
             text.setText(file.getAbsolutePath());
@@ -109,14 +104,17 @@ public class MyApp extends Application{
     }
 
     private void encrypt(TextField text, Label label) {
+        System.out.println("Старт программы " + new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(new Date()));
         if (text.getText().equals("")) {
-            label.setText("Введите имя файла");
+            label.setText("Шиврование: Введите имя файла");
             return;
         }
         try {
-            new Ofb().encrypt(text.getText());
+            ofb.encrypt(text.getText());
             System.out.println("Done");
             label.setText("Шиврование: Готово");
+        } catch(FileNotFoundException ex) {
+            label.setText("Шиврование: файл не найден");
         } catch(Exception ex) {
             label.setText("Шиврование: что-то пошло не так");
         }
@@ -124,17 +122,23 @@ public class MyApp extends Application{
 
     private void decrypt(TextField text, Label label) {
         if (text.getText().equals("")) {
-            label.setText("Введите имя файла");
+            label.setText("Расшивровка: Введите имя файла");
             return;
         }
         try {
-            new Ofb().decrypt(text.getText());
+            ofb.decrypt(text.getText());
             System.out.println("Done");
             label.setText("Расшивровка: Готово");
-        } catch (KeyNotFound ex) {
-            label.setText("Расшивровка: Не найден ключ");
+        } catch (FileNotFoundException | KeyException ex) {
+            label.setText("Расшивровка: " + ex.getMessage());
         } catch (Exception ex) {
-            label.setText("Расшивровка: что-то пошло не так");
+            label.setText("Расшивровка: что-то пошло не так ");
         }
+    }
+
+    @Override
+    public void init() throws Exception {
+        super.init();
+        ofb = new Ofb();
     }
 }
