@@ -18,8 +18,8 @@ import java.util.Random;
 public class Ofb {
     public void encrypt(String pathFile) throws FileNotFoundException {
         File file = new File(pathFile);
-        byte[] readFile = readFile(file);
-        int size = readFile.length;
+        byte[] buffer = new byte[8];
+        int size;
 
         int buf2[] = {0x00_00_00_00, 0x00_00_00_00};
 
@@ -28,30 +28,28 @@ public class Ofb {
 
         byte keyBytes[] = generateKey();
         writeFile(file.getParent() + "\\GEA_KEY", keyBytes);
-        int[] text = byteToInt(readFile);
         int[] key = byteToInt(keyBytes);
 
-        System.out.println("Перекинулы в инт " + formatter.format(new Date()));
-
-        for (int i = 0; i < text.length; i += 2) {
-            encrypt(buf2, key);
-            shifr(text, buf2, i);
+        try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
+                FileInputStream reader = new FileInputStream(pathFile)) {
+            for (int i = 0, pos = 0; i < file.length(); i += 8) {
+                size = readFile(reader, buffer, pos);
+                encrypt(buf2, key);
+                int[] intBuffer = byteToInt(buffer);
+                shifr(intBuffer, buf2, i);
+                writeFile(writer, intToByte(intBuffer), size);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
 
         System.out.println("Зашифровали " + formatter.format(new Date()));
-
-        byte[] encText = intToByte(text);
-        byte[] finishBytes = new byte[size];
-        System.arraycopy(encText, 0, finishBytes, 0, size);
-        writeFile(file + ".enc", finishBytes);
-
-        System.out.println("Записали в файл " + formatter.format(new Date()));
     }
 
     public void decrypt(String pathFile) throws KeyException, FileNotFoundException {
         File file = new File(pathFile);
-        byte[] readFile = readFile(file);
-        int size = readFile.length;
+        byte[] buffer = new byte[8];
         int buf2[] = {0x00_00_00_00, 0x00_00_00_00};
 
         byte[] keyBytes = null;
@@ -63,20 +61,23 @@ public class Ofb {
 
         if (keyBytes.length != 16) throw new KeyException("ключ равен не 16 байт");
 
-        int[] text = byteToInt(readFile);
         int[] key = byteToInt(keyBytes);
 
-        for (int i = 0; i < text.length; i += 2) {
-            encrypt(buf2, key);
-            shifr(text, buf2, i);
-        }
-
-        byte[] encText = intToByte(text);
         String s = file.getName().substring(0, file.getName().lastIndexOf("."));
-        byte[] finishBytes = new byte[size];
-        System.arraycopy(encText, 0, finishBytes, 0, size);
 
-        writeFile(file.getParent() + "\\" + s, finishBytes);
+        try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
+             FileInputStream reader = new FileInputStream(pathFile)) {
+            for (int i = 0, pos = 0; i < file.length(); i += 8) {
+                int size = readFile(reader, buffer, pos);
+                encrypt(buf2, key);
+                int[] intBuffer = byteToInt(buffer);
+                shifr(intBuffer, buf2, i);
+                writeFile(writer, intToByte(intBuffer), size);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
     }
 
     private void encrypt(int[] data, int[] key) {
@@ -96,8 +97,8 @@ public class Ofb {
     }
 
     private void shifr(int[] data, int[] buf2, int index) {
-        data[index] ^= buf2[0];
-        data[index + 1] ^= buf2[1];
+        data[0] ^= buf2[0];
+        data[1] ^= buf2[1];
     }
 
     private byte[] generateKey() {
@@ -120,6 +121,20 @@ public class Ofb {
         return buffer;
     }
 
+    private int readFile(FileInputStream fis, byte[] buffer, int pos) throws IOException {
+        fis.skip(pos);
+        int size = 0;
+        int tempByte;
+        for (int i = 0; i < 8; i++) {
+            tempByte = fis.read();
+            if (tempByte != -1) {
+                buffer[i] = (byte) tempByte;
+                size++;
+            } else buffer[i] = 0;
+        }
+        return size;
+    }
+
     private void writeFile(String pathFile, byte[] data) {
         try (BufferedOutputStream writer = new BufferedOutputStream(new FileOutputStream(pathFile))) {//запись файла побайтово
             writer.write(data);
@@ -127,6 +142,10 @@ public class Ofb {
         } catch (IOException e) {
             System.out.println("Ошибка ввода\\вывода");
         }
+    }
+
+    private void writeFile(FileOutputStream fos, byte[] buffer, int size) throws IOException {
+        fos.write(buffer, 0, size);
     }
 
     private int[] byteToInt(byte[] data) {

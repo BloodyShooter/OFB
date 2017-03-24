@@ -104,7 +104,6 @@ public class MyApp extends Application{
     }
 
     private void encrypt(TextField text, Label label) {
-        System.out.println("Старт программы " + new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(new Date()));
         if (text.getText().equals("")) {
             label.setText("Шиврование: Введите имя файла");
             return;
@@ -117,6 +116,7 @@ public class MyApp extends Application{
             label.setText("Шиврование: файл не найден");
         } catch(Exception ex) {
             label.setText("Шиврование: что-то пошло не так");
+            ex.printStackTrace();
         }
     }
 
