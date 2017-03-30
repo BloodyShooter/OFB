@@ -1,6 +1,5 @@
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -18,62 +17,36 @@ import java.util.Random;
 public class Ofb {
     public void encrypt(String pathFile) throws FileNotFoundException {
         File file = new File(pathFile);
-        byte[] buffer = new byte[8];
-        int size;
-
-        int buf2[] = {0x00_00_00_00, 0x00_00_00_00};
-
-        DateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-        System.out.println("Старт программы " + formatter.format(new Date()));
-
         byte keyBytes[] = generateKey();
-        writeFile(file.getParent() + "\\GEA_KEY", keyBytes);
-        int[] key = byteToInt(keyBytes);
+
+        FilesManager.writeFile(file.getParent() + "\\GEA_KEY", keyBytes);
 
         try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
                 FileInputStream reader = new FileInputStream(pathFile)) {
-            for (int i = 0, pos = 0; i < file.length(); i += 8) {
-                size = readFile(reader, buffer, pos);
-                encrypt(buf2, key);
-                int[] intBuffer = byteToInt(buffer);
-                shifr(intBuffer, buf2, i);
-                writeFile(writer, intToByte(intBuffer), size);
-            }
+            runCicle(file, keyBytes, writer, reader);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
         }
-
-        System.out.println("Зашифровали " + formatter.format(new Date()));
     }
 
     public void decrypt(String pathFile) throws KeyException, FileNotFoundException {
         File file = new File(pathFile);
-        byte[] buffer = new byte[8];
-        int buf2[] = {0x00_00_00_00, 0x00_00_00_00};
 
-        byte[] keyBytes = null;
+        byte[] keyBytes;
         try {
-            keyBytes = readFile(new File(file.getParent() + "\\GEA_KEY"));
+            keyBytes = FilesManager.readFile(new File(file.getParent() + "\\GEA_KEY"));
         } catch (FileNotFoundException ex) {
             throw new KeyException("ключ не найден");
         }
 
         if (keyBytes.length != 16) throw new KeyException("ключ равен не 16 байт");
 
-        int[] key = byteToInt(keyBytes);
-
         String s = file.getName().substring(0, file.getName().lastIndexOf("."));
 
         try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
              FileInputStream reader = new FileInputStream(pathFile)) {
-            for (int i = 0, pos = 0; i < file.length(); i += 8) {
-                int size = readFile(reader, buffer, pos);
-                encrypt(buf2, key);
-                int[] intBuffer = byteToInt(buffer);
-                shifr(intBuffer, buf2, i);
-                writeFile(writer, intToByte(intBuffer), size);
-            }
+            runCicle(file, keyBytes, writer, reader);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
@@ -96,7 +69,7 @@ public class Ofb {
         data[1] = v2;
     }
 
-    private void shifr(int[] data, int[] buf2, int index) {
+    private void shifr(int[] data, int[] buf2) {
         data[0] ^= buf2[0];
         data[1] ^= buf2[1];
     }
@@ -110,70 +83,33 @@ public class Ofb {
         return bytes;
     }
 
-    private byte[] readFile(File f) throws FileNotFoundException {
-        byte[] buffer = new byte[(int) f.length()];
-        try (BufferedInputStream reader = new BufferedInputStream(new FileInputStream(f))) {
-            reader.read(buffer);
-        } catch (FileNotFoundException e) {
-            throw new FileNotFoundException("файл не найден");
-        } catch (IOException e) {
+    private void runCicle(File file, byte[] keyBytes, FileOutputStream writer, FileInputStream reader) throws IOException {
+        DateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+        System.out.println("Старт программы " + formatter.format(new Date()));
+
+        int size = (int)file.length()/8;
+        int vector[] = initVector();
+        byte[] bufferValue = new byte[8];
+        int[] key = Transfer.byteToInt(keyBytes);
+        BufferedInputStream bis = new BufferedInputStream(reader);
+
+        for (int i = 0; i < size; i++) {
+            FilesManager.readFile(bis, bufferValue);
+            int[] value = Transfer.byteToInt(bufferValue);
+            encrypt(vector, key);
+            shifr(value, vector);
+            FilesManager.writeFile(writer, Transfer.intToByte(value));
         }
-        return buffer;
+        if (file.length()%8 != 0) {
+            int sizeBlock = FilesManager.readFile(reader, bufferValue);
+            int[] value = Transfer.byteToInt(bufferValue);
+            FilesManager.writeFile(writer, Transfer.intToByte(value), sizeBlock);
+        }
+
+        System.out.println("Зашифровали " + formatter.format(new Date()));
     }
 
-    private int readFile(FileInputStream fis, byte[] buffer, int pos) throws IOException {
-        fis.skip(pos);
-        int size = 0;
-        int tempByte;
-        for (int i = 0; i < 8; i++) {
-            tempByte = fis.read();
-            if (tempByte != -1) {
-                buffer[i] = (byte) tempByte;
-                size++;
-            } else buffer[i] = 0;
-        }
-        return size;
-    }
-
-    private void writeFile(String pathFile, byte[] data) {
-        try (BufferedOutputStream writer = new BufferedOutputStream(new FileOutputStream(pathFile))) {//запись файла побайтово
-            writer.write(data);
-        } catch (FileNotFoundException e) {
-        } catch (IOException e) {
-            System.out.println("Ошибка ввода\\вывода");
-        }
-    }
-
-    private void writeFile(FileOutputStream fos, byte[] buffer, int size) throws IOException {
-        fos.write(buffer, 0, size);
-    }
-
-    private int[] byteToInt(byte[] data) {
-        int paddedSize = ((data.length/8) + (((data.length%8)==0)?0:1)) * 2;
-        int[] result = new int[paddedSize];
-        for (int i = 0, j = 0, shift = 24; i < data.length; i++) {
-            result[j] |= ((data[i] & 0xFF) << shift);
-            if (shift == 0) {
-                shift = 24;
-                j++;
-                if (j<result.length) result[j] = 0;
-            } else {
-                shift -=8;
-            }
-        }
-        return result;
-    }
-
-    private byte[] intToByte(int[] data) {
-        byte[] result = new byte[data.length * 4];
-        for (int j = 0, i = 0, count = 0; j < result.length; j++) {
-            result[j] = (byte) ((data[i] >> (24 - (8*count))) & 0xFF);
-            count++;
-            if (count ==4) {
-                count = 0;
-                i++;
-            }
-        }
-        return result;
+    private int[] initVector() {
+        return new int[]{0x00_00_00_00, 0x00_00_00_00};
     }
 }
