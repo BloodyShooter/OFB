@@ -39,6 +39,7 @@ public class FilesManager {
         try (BufferedOutputStream writer = new BufferedOutputStream(new FileOutputStream(pathFile))) {//запись файла побайтово
             writer.write(data);
         } catch (FileNotFoundException e) {
+            System.out.println("Файл не найден");
         } catch (IOException e) {
             System.out.println("Ошибка ввода\\вывода");
         }
@@ -50,5 +51,9 @@ public class FilesManager {
 
     public static void writeFile(FileOutputStream fos, byte[] buffer) throws IOException {
         fos.write(buffer);
+    }
+
+    public static void writeFile(BufferedOutputStream bos, byte[] buffer) throws IOException {
+        bos.write(buffer);
     }
 }

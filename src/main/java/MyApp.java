@@ -1,20 +1,21 @@
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Optional;
+
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
+import javafx.scene.control.*;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+
+import javax.swing.*;
 
 /**
  *
@@ -109,7 +110,12 @@ public class MyApp extends Application{
             return;
         }
         try {
-            ofb.encrypt(text.getText());
+            TextInputDialog dialog = new TextInputDialog("password");
+            dialog.setTitle("Шифрование");
+            dialog.setHeaderText("Не говорите никому свой пароль");
+            dialog.setContentText("Введите пароль:");
+            Optional<String> password = dialog.showAndWait();
+            ofb.encrypt(text.getText(), password.get());
             System.out.println("Done");
             label.setText("Шиврование: Готово");
         } catch(FileNotFoundException ex) {
@@ -126,7 +132,12 @@ public class MyApp extends Application{
             return;
         }
         try {
-            ofb.decrypt(text.getText());
+            TextInputDialog dialog = new TextInputDialog("password");
+            dialog.setTitle("Расшифровка");
+            dialog.setHeaderText("Не говорите никому свой пароль");
+            dialog.setContentText("Введите пароль:");
+            Optional<String> password = dialog.showAndWait();
+            ofb.decrypt(text.getText(), password.get());
             System.out.println("Done");
             label.setText("Расшивровка: Готово");
         } catch (FileNotFoundException | KeyException ex) {

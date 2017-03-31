@@ -1,10 +1,7 @@
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -15,38 +12,37 @@ import java.util.Random;
  * @author Yagorka
  */
 public class Ofb {
-    public void encrypt(String pathFile) throws FileNotFoundException {
+    public void encrypt(String pathFile, String password) throws FileNotFoundException {
         File file = new File(pathFile);
         byte keyBytes[] = generateKey();
+        int[] hashKey = Transfer.byteToInt(getHash(password));
 
-        FilesManager.writeFile(file.getParent() + "\\GEA_KEY", keyBytes);
+        int[] key = Transfer.byteToInt(keyBytes);
+        int[] shfrKey = encryptKey(key, hashKey);
 
         try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
                 FileInputStream reader = new FileInputStream(pathFile)) {
-            runCicle(writer, reader, file, keyBytes);
+            writer.write(Transfer.intToByte(shfrKey));
+            runCicle(writer, reader, file.length(), key);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
         }
     }
 
-    public void decrypt(String pathFile) throws KeyException, FileNotFoundException {
+    public void decrypt(String pathFile, String password) throws KeyException, FileNotFoundException {
         File file = new File(pathFile);
-
-        byte[] keyBytes;
-        try {
-            keyBytes = FilesManager.readFile(new File(file.getParent() + "\\GEA_KEY"));
-        } catch (FileNotFoundException ex) {
-            throw new KeyException("ключ не найден");
-        }
-
-        if (keyBytes.length != 16) throw new KeyException("ключ равен не 16 байт");
+        int[] hashKey = Transfer.byteToInt(getHash(password));
+        byte[] keyBytes = new byte[16];
 
         String s = file.getName().substring(0, file.getName().lastIndexOf("."));
 
         try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
              FileInputStream reader = new FileInputStream(pathFile)) {
-            runCicle(writer, reader, file, keyBytes);
+            FilesManager.readFile(new BufferedInputStream(reader, 16), keyBytes);
+            int[] key = encryptKey(Transfer.byteToInt(keyBytes), hashKey);
+
+            runCicle(writer, reader, file.length() - 16, key);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
@@ -84,21 +80,21 @@ public class Ofb {
     }
 
     private void runCicle(FileOutputStream writer, FileInputStream reader,
-                          File file, byte[] keyBytes) throws IOException {
+                          long sizeFile, int[] key) throws IOException {
         DateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
         System.out.println("Старт программы " + formatter.format(new Date()));
         int vector[] = initVector();
-        int[] key = Transfer.byteToInt(keyBytes);
+        long size = sizeFile;
 
-        optimazMethodBuff(writer, reader, key, vector, file.length()/ 512, 512);
-        optimazMethodBuff(writer, reader, key, vector, (file.length() - ((file.length() / 512) * 512)) / 8, 8);
-        lastBlog(writer, reader, file, vector, key);
+        optimazMethodBuff(writer, reader, key, vector, size/ 512, 512);
+        optimazMethodBuff(writer, reader, key, vector, (size % 512) / 8, 8);
+        lastBlog(writer, reader, sizeFile, vector, key);
 
         System.out.println("Зашифровали " + formatter.format(new Date()));
     }
 
-    private void lastBlog(FileOutputStream writer, FileInputStream reader, File file, int[] vector, int[] key) throws IOException {
-        if ((file.length() % 8) != 0) {
+    private void lastBlog(FileOutputStream writer, FileInputStream reader, long sizeFile, int[] vector, int[] key) throws IOException {
+        if ((sizeFile % 8) != 0) {
             byte[] bufferValue = new byte[8];
             int sizeBlock = FilesManager.readFile(reader, bufferValue);
             int[] value = Transfer.byteToInt(bufferValue);
@@ -113,16 +109,44 @@ public class Ofb {
                                    int sizeBuffer) throws IOException {
         byte[] bufferValue = new byte[sizeBuffer];
         BufferedInputStream bis = new BufferedInputStream(reader, sizeBuffer);
+        BufferedOutputStream bos = new BufferedOutputStream(writer, sizeBuffer);
 
         for (long i = 0; i < size; i++) {
             FilesManager.readFile(bis, bufferValue);
             int[] value = Transfer.byteToInt(bufferValue);
-            encrypt(vector, key);
-            shifr(value, vector);
-            FilesManager.writeFile(writer, Transfer.intToByte(value));
+            for (int j = 0; j < value.length; j +=2) {
+                encrypt(vector, key);
+                shifr(value, vector);
+            }
+            FilesManager.writeFile(bos, Transfer.intToByte(value));
         }
 
         return size / sizeBuffer;
+    }
+
+    private byte[] getHash(String password) {
+        byte[] hashKey = null;
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(password.getBytes());
+            hashKey = md.digest();
+        } catch (NoSuchAlgorithmException ex) {
+            System.out.println("Ошибка с хэшиком");
+        }
+        return hashKey;
+    }
+
+    private int[] encryptKey(int[] key, int[] hashKey) {
+        int[] part1 = {key[0], key[1]};
+        int[] part2 = {key[2], key[3]};
+        int[] vector = initVector();
+
+        encrypt(vector, hashKey);
+        shifr(part1, vector);
+        encrypt(vector, hashKey);
+        shifr(part2, vector);
+
+        return new int[]{part1[0], part1[1], part2[0], part2[1]};
     }
 
     private int[] initVector() {
