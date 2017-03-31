@@ -5,6 +5,7 @@ import java.io.*;
  */
 public class FilesManager {
 
+    private static final int EOF = -1;
 
     public static byte[] readFile(File f) throws FileNotFoundException {
         byte[] buffer = new byte[(int) f.length()];
@@ -26,7 +27,7 @@ public class FilesManager {
         int tempByte;
         for (int i = 0; i < 8; i++) {
             tempByte = fis.read();
-            if (tempByte != -1) {
+            if (tempByte != EOF) {
                 buffer[i] = (byte) tempByte;
                 size++;
             } else buffer[i] = 0;
@@ -45,10 +46,6 @@ public class FilesManager {
 
     public static void writeFile(FileOutputStream fos, byte[] buffer, int size) throws IOException {
         fos.write(buffer, 0, size);
-    }
-
-    public static void writeFile(BufferedOutputStream bos, byte[] buffer) throws IOException {
-        bos.write(buffer);
     }
 
     public static void writeFile(FileOutputStream fos, byte[] buffer) throws IOException {

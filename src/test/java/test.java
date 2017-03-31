@@ -8,8 +8,7 @@ import java.io.IOException;
 public class test {
     public static void main(String[] args) {
         byte[] bytes = new byte[8];
-        try (FileInputStream fis = new FileInputStream("E:\\Егор\\Idea\\OFB\\src\\test\\resourse\\text.txt")) {
-            fis.skip(28);
+        try (FileInputStream fis = new FileInputStream("C:\\Users\\Егор\\Desktop\\test\\text.txt")) {
             int size = 0;
             int tempbyte = 0;
             for (int i = 0; i < 8; i++) {

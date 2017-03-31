@@ -23,7 +23,7 @@ public class Ofb {
 
         try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
                 FileInputStream reader = new FileInputStream(pathFile)) {
-            runCicle(file, keyBytes, writer, reader);
+            runCicle(writer, reader, file, keyBytes);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
@@ -46,7 +46,7 @@ public class Ofb {
 
         try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
              FileInputStream reader = new FileInputStream(pathFile)) {
-            runCicle(file, keyBytes, writer, reader);
+            runCicle(writer, reader, file, keyBytes);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
@@ -83,31 +83,57 @@ public class Ofb {
         return bytes;
     }
 
-    private void runCicle(File file, byte[] keyBytes, FileOutputStream writer, FileInputStream reader) throws IOException {
+    private void runCicle(FileOutputStream writer, FileInputStream reader,
+                          File file, byte[] keyBytes) throws IOException {
         DateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
         System.out.println("Старт программы " + formatter.format(new Date()));
-
-        int size = (int)file.length()/8;
         int vector[] = initVector();
-        byte[] bufferValue = new byte[8];
         int[] key = Transfer.byteToInt(keyBytes);
-        BufferedInputStream bis = new BufferedInputStream(reader);
 
-        for (int i = 0; i < size; i++) {
+        long size = file.length()/8;
+        byte[] bufferValue = new byte[8];
+        BufferedInputStream bis = new BufferedInputStream(reader, 8);
+
+        for (long i = 0; i < size; i++) {
             FilesManager.readFile(bis, bufferValue);
             int[] value = Transfer.byteToInt(bufferValue);
             encrypt(vector, key);
             shifr(value, vector);
             FilesManager.writeFile(writer, Transfer.intToByte(value));
         }
-        if (file.length()%8 != 0) {
-            int sizeBlock = FilesManager.readFile(reader, bufferValue);
-            int[] value = Transfer.byteToInt(bufferValue);
-            FilesManager.writeFile(writer, Transfer.intToByte(value), sizeBlock);
-        }
+        lastBlog(writer, reader, file, vector, key);
 
         System.out.println("Зашифровали " + formatter.format(new Date()));
     }
+
+    private void lastBlog(FileOutputStream writer, FileInputStream reader, File file, int[] vector, int[] key) throws IOException {
+        if ((file.length() % 8) != 0) {
+            byte[] bufferValue = new byte[8];
+            int sizeBlock = FilesManager.readFile(reader, bufferValue);
+            int[] value = Transfer.byteToInt(bufferValue);
+            encrypt(vector, key);
+            shifr(value, vector);
+            FilesManager.writeFile(writer, Transfer.intToByte(value), sizeBlock);
+        }
+    }
+
+    /*Доработать
+    private long optimazMethodBuff(FileOutputStream writer, FileInputStream reader,
+                                   int[] key, int[] vector, long size,
+                                   int sizeBuffer) throws IOException {
+        byte[] bufferValue = new byte[sizeBuffer];
+        BufferedInputStream bis = new BufferedInputStream(reader, sizeBuffer);
+
+        for (long i = 0; i < size; i++) {
+            FilesManager.readFile(bis, bufferValue);
+            int[] value = Transfer.byteToInt(bufferValue);
+            encrypt(vector, key);
+            shifr(value, vector);
+            FilesManager.writeFile(writer, Transfer.intToByte(value));
+        }
+
+        return size / sizeBuffer;
+    }*/
 
     private int[] initVector() {
         return new int[]{0x00_00_00_00, 0x00_00_00_00};
