@@ -33,6 +33,7 @@ public class MyApp extends Application{
     public void start(Stage myStage) throws Exception {
         myStage.setTitle("OFB");
         FileChooser fileChooser = new FileChooser();
+        TextInputDialog dialog = new TextInputDialog("password");
 
         Label label = new Label("MyApp");
         label.setTooltip(new Tooltip("Активный статус"));
@@ -61,14 +62,14 @@ public class MyApp extends Application{
         Button btnEnc = new Button();
         btnEnc.setText("Encrypt");
         btnEnc.setOnAction((ActionEvent event) -> {
-            encrypt(text1, label);
+            encrypt(text1, label, dialog);
         });
         btnEnc.setTooltip(new Tooltip("Run"));
 
         Button btnDec = new Button();
         btnDec.setText("Decrypt");
         btnDec.setOnAction((ActionEvent event) -> {
-            decrypt(text2, label);
+            decrypt(text2, label, dialog);
         });
         btnDec.setTooltip(new Tooltip("Run"));
 
@@ -104,19 +105,14 @@ public class MyApp extends Application{
         }
     }
 
-    private void encrypt(TextField text, Label label) {
+    private void encrypt(TextField text, Label label, TextInputDialog dialog) {
         if (text.getText().equals("")) {
             label.setText("Шиврование: Введите имя файла");
             return;
         }
         try {
-            TextInputDialog dialog = new TextInputDialog("password");
-            dialog.setTitle("Шифрование");
-            dialog.setHeaderText("Не говорите никому свой пароль");
-            dialog.setContentText("Введите пароль:");
-            Optional<String> password = dialog.showAndWait();
+            Optional<String> password = getPasswordFromDialog(dialog, "Шифрование");
             ofb.encrypt(text.getText(), password.get());
-            System.out.println("Done");
             label.setText("Шиврование: Готово");
         } catch(FileNotFoundException ex) {
             label.setText("Шиврование: файл не найден");
@@ -126,25 +122,27 @@ public class MyApp extends Application{
         }
     }
 
-    private void decrypt(TextField text, Label label) {
+    private void decrypt(TextField text, Label label, TextInputDialog dialog) {
         if (text.getText().equals("")) {
             label.setText("Расшивровка: Введите имя файла");
             return;
         }
         try {
-            TextInputDialog dialog = new TextInputDialog("password");
-            dialog.setTitle("Расшифровка");
-            dialog.setHeaderText("Не говорите никому свой пароль");
-            dialog.setContentText("Введите пароль:");
-            Optional<String> password = dialog.showAndWait();
+            Optional<String> password = getPasswordFromDialog(dialog, "Расшифровка");
             ofb.decrypt(text.getText(), password.get());
-            System.out.println("Done");
             label.setText("Расшивровка: Готово");
         } catch (FileNotFoundException | KeyException ex) {
             label.setText("Расшивровка: " + ex.getMessage());
         } catch (Exception ex) {
             label.setText("Расшивровка: что-то пошло не так ");
         }
+    }
+
+    private Optional<String> getPasswordFromDialog(TextInputDialog dialog, String text) {
+        dialog.setTitle(text);
+        dialog.setHeaderText("Не говорите никому свой пароль");
+        dialog.setContentText("Введите пароль:");
+        return dialog.showAndWait();
     }
 
     @Override

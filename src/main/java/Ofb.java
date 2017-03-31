@@ -12,18 +12,23 @@ import java.util.Random;
  * @author Yagorka
  */
 public class Ofb {
+
+    private static final int  sizeBigBuffer = 1024;
+    private static final int  sizeSmallBuffer = 8;
+    private static final int  sizeFileWithKey = 16;
+
     public void encrypt(String pathFile, String password) throws FileNotFoundException {
         File file = new File(pathFile);
         byte keyBytes[] = generateKey();
-        int[] hashKey = Transfer.byteToInt(getHash(password));
+        int[] hashKey = Transfer.byteToInt(getHashMD5(password));
 
         int[] key = Transfer.byteToInt(keyBytes);
-        int[] shfrKey = encryptKey(key, hashKey);
+        int[] shfrKey = encryptKeyOFB(key, hashKey);
 
         try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
                 FileInputStream reader = new FileInputStream(pathFile)) {
             writer.write(Transfer.intToByte(shfrKey));
-            runCicle(writer, reader, file.length(), key);
+            runEncryptOFB(writer, reader, file.length(), key);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
@@ -32,24 +37,24 @@ public class Ofb {
 
     public void decrypt(String pathFile, String password) throws KeyException, FileNotFoundException {
         File file = new File(pathFile);
-        int[] hashKey = Transfer.byteToInt(getHash(password));
-        byte[] keyBytes = new byte[16];
+        int[] hashKey = Transfer.byteToInt(getHashMD5(password));
+        byte[] keyBytes = new byte[sizeFileWithKey];
 
         String s = file.getName().substring(0, file.getName().lastIndexOf("."));
 
         try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
              FileInputStream reader = new FileInputStream(pathFile)) {
-            FilesManager.readFile(new BufferedInputStream(reader, 16), keyBytes);
-            int[] key = encryptKey(Transfer.byteToInt(keyBytes), hashKey);
+            FilesManager.readFile(new BufferedInputStream(reader, sizeFileWithKey), keyBytes);
+            int[] key = encryptKeyOFB(Transfer.byteToInt(keyBytes), hashKey);
 
-            runCicle(writer, reader, file.length() - 16, key);
+            runEncryptOFB(writer, reader, file.length() - sizeFileWithKey, key);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
         }
     }
 
-    private void encrypt(int[] data, int[] key) {
+    private void encryptTEA(int[] data, int[] key) {
         int delta = 0x9e3779b9;
         int sum , n, v1, v2;
         n = 32;
@@ -65,70 +70,73 @@ public class Ofb {
         data[1] = v2;
     }
 
-    private void shifr(int[] data, int[] buf2) {
+    private void encXOR(int[] data, int[] buf2) {
         data[0] ^= buf2[0];
         data[1] ^= buf2[1];
     }
 
     private byte[] generateKey() {
         Random r = new Random();
-        byte[] bytes = new byte[16];
+        byte[] bytes = new byte[sizeFileWithKey];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = (byte) r.nextInt(0xFF);
         }
         return bytes;
     }
 
-    private void runCicle(FileOutputStream writer, FileInputStream reader,
-                          long sizeFile, int[] key) throws IOException {
+    private void runEncryptOFB(FileOutputStream writer, FileInputStream reader,
+                               long sizeFile, int[] key) throws IOException {
         DateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
         System.out.println("Старт программы " + formatter.format(new Date()));
         int vector[] = initVector();
 
-        optimazMethodBuff(writer, reader, key, vector, sizeFile/ 512, 512);
-        optimazMethodBuff(writer, reader, key, vector, (sizeFile % 512) / 8, 8);
-        lastBlog(writer, reader, sizeFile, vector, key);
+        sizeFile -= encryptWithBuffer(writer, reader, key, vector,
+                sizeFile / sizeBigBuffer, sizeBigBuffer);
+        sizeFile -= encryptWithBuffer(writer, reader, key, vector,
+                sizeFile / sizeSmallBuffer, sizeSmallBuffer);
+        encryptLastBlog(writer, reader, sizeFile, vector, key);
 
         System.out.println("Зашифровали " + formatter.format(new Date()));
     }
 
-    private void lastBlog(FileOutputStream writer, FileInputStream reader, long sizeFile, int[] vector, int[] key) throws IOException {
-        if ((sizeFile % 8) != 0) {
-            byte[] bufferValue = new byte[8];
+    private void encryptLastBlog(FileOutputStream writer, FileInputStream reader,
+                                 long sizeFile, int[] vector, int[] key) throws IOException {
+        if (sizeFile != 0) {
+            byte[] bufferValue = new byte[sizeSmallBuffer];
             int sizeBlock = FilesManager.readFile(reader, bufferValue);
             int[] value = Transfer.byteToInt(bufferValue);
-            encrypt(vector, key);
-            shifr(value, vector);
+            encryptTEA(vector, key);
+            encXOR(value, vector);
             FilesManager.writeFile(writer, Transfer.intToByte(value), sizeBlock);
         }
     }
 
-    private long optimazMethodBuff(FileOutputStream writer, FileInputStream reader,
+    private long encryptWithBuffer(FileOutputStream writer, FileInputStream reader,
                                    int[] key, int[] vector, long size,
                                    int sizeBuffer) throws IOException {
         byte[] bufferValue = new byte[sizeBuffer];
-        BufferedInputStream bis = new BufferedInputStream(reader, sizeBuffer);
-        BufferedOutputStream bos = new BufferedOutputStream(writer, sizeBuffer);
+        BufferedInputStream bufferReader = new BufferedInputStream(reader, sizeBuffer);
+        BufferedOutputStream bufferWriter = new BufferedOutputStream(writer, sizeBuffer);
         int[] newValue = new int[2];
 
         for (long i = 0; i < size; i++) {
-            FilesManager.readFile(bis, bufferValue);
+            FilesManager.readFile(bufferReader, bufferValue);
             int[] value = Transfer.byteToInt(bufferValue);
             for (int j = 0; j < value.length; j += 2) {
-                encrypt(vector, key);
+                encryptTEA(vector, key);
                 newValue[0] = value[j];
                 newValue[1] = value[j + 1];
-                shifr(newValue, vector);
+                encXOR(newValue, vector);
                 value[j] = newValue[0];
                 value[j + 1] = newValue[1];
             }
-            FilesManager.writeFile(bos, Transfer.intToByte(value));
+            FilesManager.writeFile(bufferWriter, Transfer.intToByte(value));
         }
 
-        return size / sizeBuffer;
+        return size * sizeBuffer;
     }
 
-    private byte[] getHash(String password) {
+    private byte[] getHashMD5(String password) {
         byte[] hashKey = null;
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
@@ -140,15 +148,15 @@ public class Ofb {
         return hashKey;
     }
 
-    private int[] encryptKey(int[] key, int[] hashKey) {
+    private int[] encryptKeyOFB(int[] key, int[] hashKey) {
+        int[] vector = initVector();
         int[] part1 = {key[0], key[1]};
         int[] part2 = {key[2], key[3]};
-        int[] vector = initVector();
 
-        encrypt(vector, hashKey);
-        shifr(part1, vector);
-        encrypt(vector, hashKey);
-        shifr(part2, vector);
+        encryptTEA(vector, hashKey);
+        encXOR(part1, vector);
+        encryptTEA(vector, hashKey);
+        encXOR(part2, vector);
 
         return new int[]{part1[0], part1[1], part2[0], part2[1]};
     }
