@@ -90,17 +90,8 @@ public class Ofb {
         int vector[] = initVector();
         int[] key = Transfer.byteToInt(keyBytes);
 
-        long size = file.length()/8;
-        byte[] bufferValue = new byte[8];
-        BufferedInputStream bis = new BufferedInputStream(reader, 8);
-
-        for (long i = 0; i < size; i++) {
-            FilesManager.readFile(bis, bufferValue);
-            int[] value = Transfer.byteToInt(bufferValue);
-            encrypt(vector, key);
-            shifr(value, vector);
-            FilesManager.writeFile(writer, Transfer.intToByte(value));
-        }
+        optimazMethodBuff(writer, reader, key, vector, file.length()/ 512, 512);
+        optimazMethodBuff(writer, reader, key, vector, (file.length() - ((file.length() / 512) * 512)) / 8, 8);
         lastBlog(writer, reader, file, vector, key);
 
         System.out.println("Зашифровали " + formatter.format(new Date()));
@@ -117,7 +108,6 @@ public class Ofb {
         }
     }
 
-    /*Доработать
     private long optimazMethodBuff(FileOutputStream writer, FileInputStream reader,
                                    int[] key, int[] vector, long size,
                                    int sizeBuffer) throws IOException {
@@ -133,7 +123,7 @@ public class Ofb {
         }
 
         return size / sizeBuffer;
-    }*/
+    }
 
     private int[] initVector() {
         return new int[]{0x00_00_00_00, 0x00_00_00_00};
