@@ -49,10 +49,6 @@ public class FilesManager {
         fos.write(buffer, 0, size);
     }
 
-    public static void writeFile(FileOutputStream fos, byte[] buffer) throws IOException {
-        fos.write(buffer);
-    }
-
     public static void writeFile(BufferedOutputStream bos, byte[] buffer) throws IOException {
         bos.write(buffer);
     }

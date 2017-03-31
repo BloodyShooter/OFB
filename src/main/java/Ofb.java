@@ -84,10 +84,9 @@ public class Ofb {
         DateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
         System.out.println("Старт программы " + formatter.format(new Date()));
         int vector[] = initVector();
-        long size = sizeFile;
 
-        optimazMethodBuff(writer, reader, key, vector, size/ 512, 512);
-        optimazMethodBuff(writer, reader, key, vector, (size % 512) / 8, 8);
+        optimazMethodBuff(writer, reader, key, vector, sizeFile/ 512, 512);
+        optimazMethodBuff(writer, reader, key, vector, (sizeFile % 512) / 8, 8);
         lastBlog(writer, reader, sizeFile, vector, key);
 
         System.out.println("Зашифровали " + formatter.format(new Date()));
@@ -110,13 +109,18 @@ public class Ofb {
         byte[] bufferValue = new byte[sizeBuffer];
         BufferedInputStream bis = new BufferedInputStream(reader, sizeBuffer);
         BufferedOutputStream bos = new BufferedOutputStream(writer, sizeBuffer);
+        int[] newValue = new int[2];
 
         for (long i = 0; i < size; i++) {
             FilesManager.readFile(bis, bufferValue);
             int[] value = Transfer.byteToInt(bufferValue);
-            for (int j = 0; j < value.length; j +=2) {
+            for (int j = 0; j < value.length; j += 2) {
                 encrypt(vector, key);
-                shifr(value, vector);
+                newValue[0] = value[j];
+                newValue[1] = value[j + 1];
+                shifr(newValue, vector);
+                value[j] = newValue[0];
+                value[j + 1] = newValue[1];
             }
             FilesManager.writeFile(bos, Transfer.intToByte(value));
         }
