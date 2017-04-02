@@ -18,13 +18,15 @@ import javafx.stage.Stage;
  */
 public class MyApp extends Application{
 
-    cryptographerOFB cryptographerOFB;
+    CryptographerOFB cryptographerOFB;
 
     private Label lblStatus;
     private FileChooser fileChooser;
     private TextInputDialog dialogPassword;
     private TextField txtEncrypt;
     private TextField txtDecrypt;
+    private static Button btnEncrypt;
+    private static Button btnDecrypt;
 
     public static void launchMyApp(String[] args) {
         launch(args);
@@ -60,17 +62,17 @@ public class MyApp extends Application{
         });
         btnChooserDecFile.setTooltip(new Tooltip("Проводник выбора файлов"));
 
-        Button btnEncrypt = new Button();
+        btnEncrypt = new Button();
         btnEncrypt.setText("Encrypt");
         btnEncrypt.setOnAction((ActionEvent event) -> {
-            encrypt(txtEncrypt);
+            encrypt();
         });
         btnEncrypt.setTooltip(new Tooltip("Run"));
 
-        Button btnDecrypt = new Button();
+        btnDecrypt = new Button();
         btnDecrypt.setText("Decrypt");
         btnDecrypt.setOnAction((ActionEvent event) -> {
-            decrypt(txtDecrypt);
+            decrypt();
         });
         btnDecrypt.setTooltip(new Tooltip("Run"));
 
@@ -102,18 +104,19 @@ public class MyApp extends Application{
         fileChooser.setTitle(textMsg);
         File file = fileChooser.showOpenDialog(myStage);
         if (file != null) {
+            fileChooser.setInitialDirectory(file.getParentFile());
             text.setText(file.getAbsolutePath());
         }
     }
 
-    private void encrypt(TextField text) {
-        if (text.getText().equals("")) {
+    private void encrypt() {
+        if (txtEncrypt.getText().equals("")) {
             lblStatus.setText("Шиврование: Введите имя файла");
             return;
         }
         try {
             Optional<String> password = getPasswordFromDialog("Шифрование");
-            cryptographerOFB.encrypt(text.getText(), password.get());
+            cryptographerOFB.encrypt(txtEncrypt.getText(), password.get());
             lblStatus.setText("Шиврование: Готово");
         } catch(FileNotFoundException ex) {
             lblStatus.setText("Шиврование: файл не найден");
@@ -123,14 +126,14 @@ public class MyApp extends Application{
         }
     }
 
-    private void decrypt(TextField text) {
-        if (text.getText().equals("")) {
+    private void decrypt() {
+        if (txtDecrypt.getText().equals("")) {
             lblStatus.setText("Расшивровка: Введите имя файла");
             return;
         }
         try {
             Optional<String> password = getPasswordFromDialog("Расшифровка");
-            cryptographerOFB.decrypt(text.getText(), password.get());
+            cryptographerOFB.decrypt(txtDecrypt.getText(), password.get());
             lblStatus.setText("Расшивровка: Готово");
         } catch (FileNotFoundException | KeyException ex) {
             lblStatus.setText("Расшивровка: " + ex.getMessage());
@@ -149,6 +152,6 @@ public class MyApp extends Application{
     @Override
     public void init() throws Exception {
         super.init();
-        cryptographerOFB = new cryptographerOFB();
+        cryptographerOFB = new CryptographerOFB();
     }
 }

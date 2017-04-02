@@ -11,7 +11,7 @@ import java.util.Random;
  *
  * @author Yagorka
  */
-public class cryptographerOFB {
+public class CryptographerOFB {
 
     private static final int SIZE_BIG_BUFFER = 1024;
     private static final int SIZE_SMALL_BUFFER = 8;
