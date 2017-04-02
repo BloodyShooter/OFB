@@ -1,9 +1,12 @@
 
+import java.io.Externalizable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Optional;
 
 import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -25,8 +28,8 @@ public class MyApp extends Application{
     private TextInputDialog dialogPassword;
     private TextField txtEncrypt;
     private TextField txtDecrypt;
-    private static Button btnEncrypt;
-    private static Button btnDecrypt;
+    private Button btnEncrypt;
+    private Button btnDecrypt;
 
     public static void launchMyApp(String[] args) {
         launch(args);
@@ -114,16 +117,29 @@ public class MyApp extends Application{
             lblStatus.setText("Шиврование: Введите имя файла");
             return;
         }
-        try {
-            Optional<String> password = getPasswordFromDialog("Шифрование");
-            cryptographerOFB.encrypt(txtEncrypt.getText(), password.get());
-            lblStatus.setText("Шиврование: Готово");
-        } catch(FileNotFoundException ex) {
-            lblStatus.setText("Шиврование: файл не найден");
-        } catch(Exception ex) {
-            lblStatus.setText("Шиврование: что-то пошло не так");
-            ex.printStackTrace();
-        }
+        runEncrypt();
+    }
+
+    private void runEncrypt() {
+        Optional<String> password = getPasswordFromDialog("Шифрование");
+        lblStatus.setText("Шиврование: в процессе");
+        lockActionButton();
+        Task newTask = new Task() {
+            @Override
+            protected Object call() throws Exception {
+                try {
+                    cryptographerOFB.encrypt(txtEncrypt.getText(), password.get());
+                } catch (FileNotFoundException e) {
+                    setStatusText("Шифрование: файл не найден");
+                } catch (Exception e) {
+                    setStatusText("Шифрование: что то пошло не так");
+                }
+                unlockActionButton();
+                setStatusText("Шифрование: готова");
+                return null;
+            }
+        };
+        new Thread(newTask).start();
     }
 
     private void decrypt() {
@@ -131,15 +147,29 @@ public class MyApp extends Application{
             lblStatus.setText("Расшивровка: Введите имя файла");
             return;
         }
-        try {
-            Optional<String> password = getPasswordFromDialog("Расшифровка");
-            cryptographerOFB.decrypt(txtDecrypt.getText(), password.get());
-            lblStatus.setText("Расшивровка: Готово");
-        } catch (FileNotFoundException | KeyException ex) {
-            lblStatus.setText("Расшивровка: " + ex.getMessage());
-        } catch (Exception ex) {
-            lblStatus.setText("Расшивровка: что-то пошло не так ");
-        }
+        runDecrypt();
+    }
+
+    private void runDecrypt() {
+        Optional<String> password = getPasswordFromDialog("Расшифровка");
+        lblStatus.setText("Расшифровка: в процессе");
+        lockActionButton();
+        Task newTask = new Task() {
+            @Override
+            protected Object call() throws Exception {
+                try {
+                    cryptographerOFB.decrypt(txtDecrypt.getText(), password.get());
+                } catch (FileNotFoundException | KeyException ex) {
+                    setStatusText("Расшифровка: файл не найден");
+                } catch (Exception e) {
+                    setStatusText("Расшифровка: что то пошло не так");
+                }
+                unlockActionButton();
+                setStatusText("Расшифровка: готова");
+                return null;
+            }
+        };
+        new Thread(newTask).start();
     }
 
     private Optional<String> getPasswordFromDialog(String text) {
@@ -153,5 +183,19 @@ public class MyApp extends Application{
     public void init() throws Exception {
         super.init();
         cryptographerOFB = new CryptographerOFB();
+    }
+
+    private void lockActionButton() {
+        btnEncrypt.setDisable(true);
+        btnDecrypt.setDisable(true);
+    }
+
+    private void unlockActionButton() {
+        btnEncrypt.setDisable(false);
+        btnDecrypt.setDisable(false);
+    }
+
+    private void setStatusText(String text) {
+        Platform.runLater(() -> lblStatus.setText(text));
     }
 }
