@@ -1,9 +1,6 @@
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.security.MessageDigest;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Optional;
 
 import javafx.application.Application;
@@ -15,15 +12,19 @@ import javafx.scene.layout.FlowPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
-import javax.swing.*;
-
 /**
  *
  * @author Yagorka
  */
 public class MyApp extends Application{
 
-    Ofb ofb;
+    cryptographerOFB cryptographerOFB;
+
+    private Label lblStatus;
+    private FileChooser fileChooser;
+    private TextInputDialog dialogPassword;
+    private TextField txtEncrypt;
+    private TextField txtDecrypt;
 
     public static void launchMyApp(String[] args) {
         launch(args);
@@ -32,46 +33,46 @@ public class MyApp extends Application{
     @Override
     public void start(Stage myStage) throws Exception {
         myStage.setTitle("OFB");
-        FileChooser fileChooser = new FileChooser();
-        TextInputDialog dialog = new TextInputDialog("password");
+        fileChooser = new FileChooser();
+        dialogPassword = new TextInputDialog("password");
 
-        Label label = new Label("MyApp");
-        label.setTooltip(new Tooltip("Активный статус"));
-        Label lblShifr = new Label("Шифрование");
-        Label lblDefifr = new Label("Дешифрование");
-        TextField text1 = new TextField();
-        text1.setPromptText("Введите имя файла");
-        text1.setTooltip(new Tooltip("Введите файл для шифрования"));
-        TextField text2 = new TextField();
-        text2.setPromptText("Введите имя файла");
-        text2.setTooltip(new Tooltip("Введите файл для дешифрования"));
+        lblStatus = new Label("MyApp");
+        lblStatus.setTooltip(new Tooltip("Активный статус"));
+        Label lblEncrypt = new Label("Шифрование");
+        Label lblDecrypt = new Label("Дешифрование");
+        txtEncrypt = new TextField();
+        txtEncrypt.setPromptText("Введите имя файла");
+        txtEncrypt.setTooltip(new Tooltip("Введите файл для шифрования"));
+        txtDecrypt = new TextField();
+        txtDecrypt.setPromptText("Введите имя файла");
+        txtDecrypt.setTooltip(new Tooltip("Введите файл для дешифрования"));
 
-        Button btnCh1 = new Button("Open...");
-        btnCh1.setOnAction((ActionEvent event) -> {
-            FileChooserMethod(myStage, fileChooser, text1, "Открытие файла");
+        Button btnChooserEncFile = new Button("Open...");
+        btnChooserEncFile.setOnAction((ActionEvent event) -> {
+            FileChooserMethod(myStage, txtEncrypt, "Открытие файла");
         });
-        btnCh1.setTooltip(new Tooltip("Проводник выбора файлов"));
+        btnChooserEncFile.setTooltip(new Tooltip("Проводник выбора файлов"));
 
-        Button btnCh2 = new Button();
-        btnCh2.setText("Open...");
-        btnCh2.setOnAction((ActionEvent event) -> {
-            FileChooserMethod(myStage, fileChooser, text2, "Открыте зашифрованного файла");
+        Button btnChooserDecFile = new Button();
+        btnChooserDecFile.setText("Open...");
+        btnChooserDecFile.setOnAction((ActionEvent event) -> {
+            FileChooserMethod(myStage, txtDecrypt, "Открыте зашифрованного файла");
         });
-        btnCh2.setTooltip(new Tooltip("Проводник выбора файлов"));
+        btnChooserDecFile.setTooltip(new Tooltip("Проводник выбора файлов"));
 
-        Button btnEnc = new Button();
-        btnEnc.setText("Encrypt");
-        btnEnc.setOnAction((ActionEvent event) -> {
-            encrypt(text1, label, dialog);
+        Button btnEncrypt = new Button();
+        btnEncrypt.setText("Encrypt");
+        btnEncrypt.setOnAction((ActionEvent event) -> {
+            encrypt(txtEncrypt);
         });
-        btnEnc.setTooltip(new Tooltip("Run"));
+        btnEncrypt.setTooltip(new Tooltip("Run"));
 
-        Button btnDec = new Button();
-        btnDec.setText("Decrypt");
-        btnDec.setOnAction((ActionEvent event) -> {
-            decrypt(text2, label, dialog);
+        Button btnDecrypt = new Button();
+        btnDecrypt.setText("Decrypt");
+        btnDecrypt.setOnAction((ActionEvent event) -> {
+            decrypt(txtDecrypt);
         });
-        btnDec.setTooltip(new Tooltip("Run"));
+        btnDecrypt.setTooltip(new Tooltip("Run"));
 
         Separator separator1 = new Separator();
         Separator separator2 = new Separator();
@@ -81,73 +82,73 @@ public class MyApp extends Application{
         FlowPane root = new FlowPane(10, 10);
         root.setAlignment(Pos.CENTER);
         root.getChildren().addAll(
-                btnCh1,
-                text1,
-                btnEnc,
-                lblShifr,
+                btnChooserEncFile,
+                txtEncrypt,
+                btnEncrypt,
+                lblEncrypt,
                 separator1,
-                btnCh2,
-                text2,
-                btnDec,
-                lblDefifr,
+                btnChooserDecFile,
+                txtDecrypt,
+                btnDecrypt,
+                lblDecrypt,
                 separator2,
-                label);
+                lblStatus);
         myStage.setScene(new Scene(root, 300, 180));
         myStage.setResizable(false);
         myStage.show();
     }
 
-    private void FileChooserMethod(Stage myStage, FileChooser fileChooser, TextField text, String textmsg) {
-        fileChooser.setTitle(textmsg);
+    private void FileChooserMethod(Stage myStage, TextField text, String textMsg) {
+        fileChooser.setTitle(textMsg);
         File file = fileChooser.showOpenDialog(myStage);
         if (file != null) {
             text.setText(file.getAbsolutePath());
         }
     }
 
-    private void encrypt(TextField text, Label label, TextInputDialog dialog) {
+    private void encrypt(TextField text) {
         if (text.getText().equals("")) {
-            label.setText("Шиврование: Введите имя файла");
+            lblStatus.setText("Шиврование: Введите имя файла");
             return;
         }
         try {
-            Optional<String> password = getPasswordFromDialog(dialog, "Шифрование");
-            ofb.encrypt(text.getText(), password.get());
-            label.setText("Шиврование: Готово");
+            Optional<String> password = getPasswordFromDialog("Шифрование");
+            cryptographerOFB.encrypt(text.getText(), password.get());
+            lblStatus.setText("Шиврование: Готово");
         } catch(FileNotFoundException ex) {
-            label.setText("Шиврование: файл не найден");
+            lblStatus.setText("Шиврование: файл не найден");
         } catch(Exception ex) {
-            label.setText("Шиврование: что-то пошло не так");
+            lblStatus.setText("Шиврование: что-то пошло не так");
             ex.printStackTrace();
         }
     }
 
-    private void decrypt(TextField text, Label label, TextInputDialog dialog) {
+    private void decrypt(TextField text) {
         if (text.getText().equals("")) {
-            label.setText("Расшивровка: Введите имя файла");
+            lblStatus.setText("Расшивровка: Введите имя файла");
             return;
         }
         try {
-            Optional<String> password = getPasswordFromDialog(dialog, "Расшифровка");
-            ofb.decrypt(text.getText(), password.get());
-            label.setText("Расшивровка: Готово");
+            Optional<String> password = getPasswordFromDialog("Расшифровка");
+            cryptographerOFB.decrypt(text.getText(), password.get());
+            lblStatus.setText("Расшивровка: Готово");
         } catch (FileNotFoundException | KeyException ex) {
-            label.setText("Расшивровка: " + ex.getMessage());
+            lblStatus.setText("Расшивровка: " + ex.getMessage());
         } catch (Exception ex) {
-            label.setText("Расшивровка: что-то пошло не так ");
+            lblStatus.setText("Расшивровка: что-то пошло не так ");
         }
     }
 
-    private Optional<String> getPasswordFromDialog(TextInputDialog dialog, String text) {
-        dialog.setTitle(text);
-        dialog.setHeaderText("Не говорите никому свой пароль");
-        dialog.setContentText("Введите пароль:");
-        return dialog.showAndWait();
+    private Optional<String> getPasswordFromDialog(String text) {
+        dialogPassword.setTitle(text);
+        dialogPassword.setHeaderText("Не говорите никому свой пароль");
+        dialogPassword.setContentText("Введите пароль:");
+        return dialogPassword.showAndWait();
     }
 
     @Override
     public void init() throws Exception {
         super.init();
-        ofb = new Ofb();
+        cryptographerOFB = new cryptographerOFB();
     }
 }

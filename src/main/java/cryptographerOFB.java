@@ -11,11 +11,11 @@ import java.util.Random;
  *
  * @author Yagorka
  */
-public class Ofb {
+public class cryptographerOFB {
 
-    private static final int  sizeBigBuffer = 1024;
-    private static final int  sizeSmallBuffer = 8;
-    private static final int  sizeFileWithKey = 16;
+    private static final int SIZE_BIG_BUFFER = 1024;
+    private static final int SIZE_SMALL_BUFFER = 8;
+    private static final int SIZE_FILE_WITH_KEY = 16;
 
     public void encrypt(String pathFile, String password) throws FileNotFoundException {
         File file = new File(pathFile);
@@ -23,11 +23,11 @@ public class Ofb {
         int[] hashKey = Transfer.byteToInt(getHashMD5(password));
 
         int[] key = Transfer.byteToInt(keyBytes);
-        int[] shfrKey = encryptKeyOFB(key, hashKey);
+        int[] cipheredKey = encryptKeyOFB(key, hashKey);
 
         try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
                 FileInputStream reader = new FileInputStream(pathFile)) {
-            writer.write(Transfer.intToByte(shfrKey));
+            writer.write(Transfer.intToByte(cipheredKey));
             runEncryptOFB(writer, reader, file.length(), key);
         } catch (IOException e) {
             e.printStackTrace();
@@ -38,16 +38,16 @@ public class Ofb {
     public void decrypt(String pathFile, String password) throws KeyException, FileNotFoundException {
         File file = new File(pathFile);
         int[] hashKey = Transfer.byteToInt(getHashMD5(password));
-        byte[] keyBytes = new byte[sizeFileWithKey];
+        byte[] keyBytes = new byte[SIZE_FILE_WITH_KEY];
 
         String s = file.getName().substring(0, file.getName().lastIndexOf("."));
 
         try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
              FileInputStream reader = new FileInputStream(pathFile)) {
-            FilesManager.readFile(new BufferedInputStream(reader, sizeFileWithKey), keyBytes);
+            FilesManager.readFile(new BufferedInputStream(reader, SIZE_FILE_WITH_KEY), keyBytes);
             int[] key = encryptKeyOFB(Transfer.byteToInt(keyBytes), hashKey);
 
-            runEncryptOFB(writer, reader, file.length() - sizeFileWithKey, key);
+            runEncryptOFB(writer, reader, file.length() - SIZE_FILE_WITH_KEY, key);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
@@ -77,7 +77,7 @@ public class Ofb {
 
     private byte[] generateKey() {
         Random r = new Random();
-        byte[] bytes = new byte[sizeFileWithKey];
+        byte[] bytes = new byte[SIZE_FILE_WITH_KEY];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = (byte) r.nextInt(0xFF);
         }
@@ -91,9 +91,9 @@ public class Ofb {
         int vector[] = initVector();
 
         sizeFile -= encryptWithBuffer(writer, reader, key, vector,
-                sizeFile / sizeBigBuffer, sizeBigBuffer);
+                sizeFile, SIZE_BIG_BUFFER);
         sizeFile -= encryptWithBuffer(writer, reader, key, vector,
-                sizeFile / sizeSmallBuffer, sizeSmallBuffer);
+                sizeFile, SIZE_SMALL_BUFFER);
         encryptLastBlog(writer, reader, sizeFile, vector, key);
 
         System.out.println("Зашифровали " + formatter.format(new Date()));
@@ -102,7 +102,7 @@ public class Ofb {
     private void encryptLastBlog(FileOutputStream writer, FileInputStream reader,
                                  long sizeFile, int[] vector, int[] key) throws IOException {
         if (sizeFile != 0) {
-            byte[] bufferValue = new byte[sizeSmallBuffer];
+            byte[] bufferValue = new byte[SIZE_SMALL_BUFFER];
             int sizeBlock = FilesManager.readFile(reader, bufferValue);
             int[] value = Transfer.byteToInt(bufferValue);
             encryptTEA(vector, key);
@@ -114,6 +114,7 @@ public class Ofb {
     private long encryptWithBuffer(FileOutputStream writer, FileInputStream reader,
                                    int[] key, int[] vector, long size,
                                    int sizeBuffer) throws IOException {
+        size /= sizeBuffer;
         byte[] bufferValue = new byte[sizeBuffer];
         BufferedInputStream bufferReader = new BufferedInputStream(reader, sizeBuffer);
         BufferedOutputStream bufferWriter = new BufferedOutputStream(writer, sizeBuffer);
