@@ -8,6 +8,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -74,7 +75,7 @@ public class MyApp extends Application{
 
         btnDecrypt = new Button();
         btnDecrypt.setText("Decrypt");
-        btnDecrypt.setOnAction((ActionEvent event) -> {
+        btnDecrypt.setOnAction(event -> {
             decrypt();
         });
         btnDecrypt.setTooltip(new Tooltip("Run"));
@@ -101,6 +102,10 @@ public class MyApp extends Application{
         myStage.setScene(new Scene(root, 300, 180));
         myStage.setResizable(false);
         myStage.show();
+    }
+
+    private static void primer(ActionEvent actionEvent) {
+        System.out.println("Привет");
     }
 
     private void FileChooserMethod(Stage myStage, TextField text, String textMsg) {
