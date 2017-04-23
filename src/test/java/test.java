@@ -1,31 +1,41 @@
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
-/**
- * Created by Егор on 24.03.2017.
- */
 public class test {
     public static void main(String[] args) {
-        byte[] bytes = new byte[8];
-        try (FileInputStream fis = new FileInputStream("C:\\Users\\Егор\\Desktop\\test\\text.txt")) {
-            int size = 0;
-            int tempbyte = 0;
-            for (int i = 0; i < 8; i++) {
-                tempbyte = fis.read();
-                if (tempbyte != -1) {
-                    bytes[i] = (byte) tempbyte;
-                    size++;
-                } else break;
-            }
-            System.out.println(size);
-            System.out.println(new String(bytes));
+        List<Integer> list = new ArrayList<>();
+        list.add(1);
+        list.add(5);
+        list.add(12);
+        list.add(2);
+        list.add(101);
+        list.add(20);
+        list.add(27);
+        list.add(40);
+        list.add(87);
 
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println("Четные числа, которые больше 10");
+        list.stream()
+                .filter(integer -> integer % 2 == 0)
+                .filter(integer -> integer > 10)
+                .forEach(integer -> System.out.print(integer + ":"));
 
+        System.out.println();
+        Optional<Integer> maxVal = list.stream().max(Integer::compare);
+        maxVal.ifPresent(integer -> System.out.println("Максимальное значение: " + integer));
+
+        list.stream().parallel().min(Integer::compare)
+                .ifPresent(integer -> System.out.println("Минимальное значение: " + integer));
+
+        System.out.println("Последовательные потоки");
+        Stream<Integer> stream = list.stream();
+        stream.forEach(integer -> System.out.print(integer + ": "));
+
+        System.out.println();
+        System.out.println("Паралельные потоки");
+        stream = list.stream();
+        stream.parallel().forEach(integer -> System.out.print(integer + ": "));
     }
 }
