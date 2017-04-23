@@ -5,7 +5,7 @@ public class Archiver {
 
     private static byte[] compressed(byte[] buffer) {
         List<Byte> compressed = new ArrayList<>();
-        List<Byte> target = new ArrayList<>();
+        List<Byte> unequalSequence = new ArrayList<>();
         int count = 1;
         int anotherCount = 0;
         for (int i = 0; i < buffer.length - 1; i++) {
@@ -18,14 +18,14 @@ public class Archiver {
                 }
                 if (anotherCount > 1) {
                     compressed.add((byte) ((anotherCount - 1) * -1));
-                    compressed.addAll(target);
+                    compressed.addAll(unequalSequence);
                 }
                 anotherCount = 0;
-                target.clear();
+                unequalSequence.clear();
             } else if (i < buffer.length && buffer[i] != buffer[i + 1]) {
                 anotherCount++;
                 if (anotherCount != 1)
-                    target.add(buffer[i]);
+                    unequalSequence.add(buffer[i]);
                 if (anotherCount == 128) {
                     compressed.add((byte) (anotherCount -1));
                     compressed.add(buffer[i]);
@@ -41,9 +41,9 @@ public class Archiver {
             compressed.add((byte) (count));
             compressed.add(buffer[buffer.length - 1]);
         }
-        if (anotherCount > 1) {
+        if (anotherCount > 0) {
             compressed.add((byte) (anotherCount * -1));
-            compressed.addAll(target);
+            compressed.addAll(unequalSequence);
             compressed.add(buffer[buffer.length - 1]);
         }
 
@@ -79,7 +79,7 @@ public class Archiver {
     }
 
     public static void main(String[] args) {
-        String example = "aaaaaaaazxcvbnmmnbvbbbb11112345678911111ooo123456789";
+        String example = "aaaaaaaazxcvbnmmnbvbbbb11112345678911111ooo123456789LL8";
         byte[] compressed = compressed(example.getBytes());
         for (byte b :
                 compressed) {
