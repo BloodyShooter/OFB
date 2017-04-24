@@ -75,7 +75,7 @@ public class MyApp extends Application{
 
         btnDecrypt = new Button();
         btnDecrypt.setText("Decrypt");
-        btnDecrypt.setOnAction(event -> {
+        btnDecrypt.setOnAction((ActionEvent event) -> {
             decrypt();
         });
         btnDecrypt.setTooltip(new Tooltip("Run"));
@@ -102,10 +102,6 @@ public class MyApp extends Application{
         myStage.setScene(new Scene(root, 300, 180));
         myStage.setResizable(false);
         myStage.show();
-    }
-
-    private static void primer(ActionEvent actionEvent) {
-        System.out.println("Привет");
     }
 
     private void FileChooserMethod(Stage myStage, TextField text, String textMsg) {

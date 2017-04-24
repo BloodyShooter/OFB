@@ -1,3 +1,4 @@
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,15 +90,10 @@ public class Archiver {
     }
 
     public static void main(String[] args) {
-        String example = "01234567890123456789012345678901234567890123456789" +
-                "01234567890123456789012345678901234567890123456789" +
-                "0123456789012345678901234567" +
-                "aa1aaaaaazxcvbnmmnbvbbbb11112345678911111ooo123456789LL8";
+        String example = "aaaaaaaazxcvbnmmnbbbbb11112345678911111ooo123456789LL";
         byte[] compressed = compressed(example.getBytes());
-        for (byte b :
-                compressed) {
-            System.out.print(b + ".");
-        }
+        String temp = new String(compressed);
+        System.out.println("Размер начального: " + example.length() + " Размер сжатого: " + temp.length());
         System.out.println();
         String result = new String(deCompressed(compressed));
         System.out.println(result);
