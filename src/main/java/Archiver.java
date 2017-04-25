@@ -90,10 +90,15 @@ public class Archiver {
     }
 
     public static void main(String[] args) {
-        String example = "aaaaaaaazxcvbnmmnbbbbb11112345678911111ooo123456789LL";
+        String example = "aaaaaaaaccccccccccccccccccccccccccccccccccccccccccccccccccccccc" +
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" +
+                "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy" +
+                "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk";
         byte[] compressed = compressed(example.getBytes());
         String temp = new String(compressed);
         System.out.println("Размер начального: " + example.length() + " Размер сжатого: " + temp.length());
+        System.out.println();
+        FilesManager.writeFile("D:\\text.txt", compressed);
         System.out.println();
         String result = new String(deCompressed(compressed));
         System.out.println(result);

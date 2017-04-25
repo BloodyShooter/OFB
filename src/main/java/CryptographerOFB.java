@@ -18,6 +18,14 @@ public class CryptographerOFB {
     private static final int SIZE_FILE_WITH_KEY = 16;
 
     public void encrypt(String pathFile, String password) throws FileNotFoundException {
+        encryptWithArchiver(pathFile, password);
+    }
+
+    public void decrypt(String pathFile, String password) throws KeyException, FileNotFoundException {
+        decryptWithArchiver(pathFile, password);
+    }
+
+    private void encryptInParts(String pathFile, String password) throws FileNotFoundException {
         File file = new File(pathFile);
         byte keyBytes[] = generateKey();
         int[] hashKey = Transfer.byteToInt(getHashMD5(password));
@@ -28,14 +36,52 @@ public class CryptographerOFB {
         try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
                 FileInputStream reader = new FileInputStream(pathFile)) {
             writer.write(Transfer.intToByte(cipheredKey));
-            runEncryptOFB(writer, reader, file.length(), key, true);
+            runEncryptOFB(writer, reader, file.length(), key);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
         }
     }
 
-    public void decrypt(String pathFile, String password) throws KeyException, FileNotFoundException {
+    private void encryptWithArchiver(String pathFile, String password) throws FileNotFoundException {
+        File file = new File(pathFile);
+        byte keyBytes[] = generateKey();
+        int[] hashKey = Transfer.byteToInt(getHashMD5(password));
+
+        int[] key = Transfer.byteToInt(keyBytes);
+        int[] cipheredKey = encryptKeyOFB(key, hashKey);
+
+        try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
+             FileInputStream reader = new FileInputStream(pathFile)) {
+            writer.write(Transfer.intToByte(cipheredKey));
+
+            BufferedInputStream bufferedReader = new BufferedInputStream(reader);
+            byte[] buffer = new byte[(int) file.length()];
+            FilesManager.readFile(bufferedReader, buffer);
+            System.out.println(buffer.length);
+            byte[] bufferArch = Archiver.compressed(buffer);
+            int fileSize = bufferArch.length;
+            System.out.println(bufferArch.length);
+
+            int vector[] = initVector();
+            int[] newValue = new int[2];
+            int[] value = Transfer.byteToInt(bufferArch);
+            for (int j = 0; j < value.length; j += 2) {
+                encryptTEA(vector, key);
+                newValue[0] = value[j];
+                newValue[1] = value[j + 1];
+                encXOR(newValue, vector);
+                value[j] = newValue[0];
+                value[j + 1] = newValue[1];
+            }
+            FilesManager.writeFile(writer, Transfer.intToByte(value), fileSize);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void decryptInParts(String pathFile, String password) throws KeyException, FileNotFoundException {
         File file = new File(pathFile);
         int[] hashKey = Transfer.byteToInt(getHashMD5(password));
         byte[] keyBytes = new byte[SIZE_FILE_WITH_KEY];
@@ -47,7 +93,47 @@ public class CryptographerOFB {
             FilesManager.readFile(new BufferedInputStream(reader, SIZE_FILE_WITH_KEY), keyBytes);
             int[] key = encryptKeyOFB(Transfer.byteToInt(keyBytes), hashKey);
 
-            runEncryptOFB(writer, reader, file.length() - SIZE_FILE_WITH_KEY, key, false);
+            runEncryptOFB(writer, reader, file.length() - SIZE_FILE_WITH_KEY, key);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void decryptWithArchiver(String pathFile, String password) throws KeyException, FileNotFoundException {
+        File file = new File(pathFile);
+        int[] hashKey = Transfer.byteToInt(getHashMD5(password));
+        byte[] keyBytes = new byte[SIZE_FILE_WITH_KEY];
+
+        String s = file.getName().substring(0, file.getName().lastIndexOf("."));
+
+        try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
+             FileInputStream reader = new FileInputStream(pathFile)) {
+            FilesManager.readFile(new BufferedInputStream(reader, SIZE_FILE_WITH_KEY), keyBytes);
+            int[] key = encryptKeyOFB(Transfer.byteToInt(keyBytes), hashKey);
+
+            BufferedInputStream bufferedReader = new BufferedInputStream(reader);
+            byte[] buffer = new byte[(int) file.length() - SIZE_FILE_WITH_KEY];
+            FilesManager.readFile(bufferedReader, buffer);
+
+            int vector[] = initVector();
+            int[] newValue = new int[2];
+            int[] value = Transfer.byteToInt(buffer);
+            for (int j = 0; j < value.length; j += 2) {
+                encryptTEA(vector, key);
+                newValue[0] = value[j];
+                newValue[1] = value[j + 1];
+                encXOR(newValue, vector);
+                value[j] = newValue[0];
+                value[j + 1] = newValue[1];
+            }
+
+            System.out.println(value.length);
+            byte[] temp = Transfer.intToByte(value);
+            byte[] temp2 = new byte[(int) file.length() - SIZE_FILE_WITH_KEY];
+            System.arraycopy(temp, 0, temp2, 0, temp2.length);
+            byte[] bufferArch = Archiver.deCompressed(temp2);
+            System.out.println(bufferArch.length);
+            FilesManager.writeFile(writer, bufferArch, bufferArch.length);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
@@ -85,15 +171,15 @@ public class CryptographerOFB {
     }
 
     private void runEncryptOFB(FileOutputStream writer, FileInputStream reader,
-                               long sizeFile, int[] key, boolean status) throws IOException {
+                               long sizeFile, int[] key) throws IOException {
         DateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
         System.out.println("Старт программы " + formatter.format(new Date()));
         int vector[] = initVector();
 
         sizeFile -= encryptWithBuffer(writer, reader, key, vector,
-                sizeFile, SIZE_BIG_BUFFER, status);
+                sizeFile, SIZE_BIG_BUFFER);
         sizeFile -= encryptWithBuffer(writer, reader, key, vector,
-                sizeFile, SIZE_SMALL_BUFFER, status);
+                sizeFile, SIZE_SMALL_BUFFER);
         encryptLastBlog(writer, reader, sizeFile, vector, key);
 
         System.out.println("Зашифровали " + formatter.format(new Date()));
@@ -113,7 +199,7 @@ public class CryptographerOFB {
 
     private long encryptWithBuffer(FileOutputStream writer, FileInputStream reader,
                                    int[] key, int[] vector, long size,
-                                   int sizeBuffer, boolean status) throws IOException {
+                                   int sizeBuffer) throws IOException {
         size /= sizeBuffer;
         byte[] bufferValue = new byte[sizeBuffer];
         BufferedInputStream bufferReader = new BufferedInputStream(reader, sizeBuffer);
