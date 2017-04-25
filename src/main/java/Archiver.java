@@ -20,8 +20,8 @@ public class Archiver {
         for (int i = 0; i < buffer.length - 1; i++) {
             if (i < buffer.length && buffer[i] == buffer[i + 1]) {
                 countEqualValues++;
-                if (countEqualValues == 128) {
-                    compressed.add((byte) (countEqualValues -1));
+                if (countEqualValues == 130) {
+                    compressed.add((byte) (countEqualValues - 3));
                     compressed.add(buffer[i]);
                     countEqualValues = 1;
                 }
@@ -35,21 +35,21 @@ public class Archiver {
                 countUnequalValues++;
                 if (countUnequalValues != 1)
                     unequalSequence.add(buffer[i]);
-                if (countUnequalValues == 128) {
+                if (countUnequalValues == 129) {
                     compressed.add((byte) ((countUnequalValues - 1) * -1));
                     compressed.addAll(unequalSequence);
                     unequalSequence.clear();
                     countUnequalValues = 1;
                 }
                 if (countEqualValues != 1) {
-                    compressed.add((byte) (countEqualValues));
+                    compressed.add((byte) (countEqualValues - 2));
                     compressed.add(buffer[i]);
                 }
                 countEqualValues = 1;
             }
         }
         if (countEqualValues != 1) {
-            compressed.add((byte) (countEqualValues));
+            compressed.add((byte) (countEqualValues - 2));
             compressed.add(buffer[buffer.length - 1]);
         }
         if (countUnequalValues > 0) {
@@ -71,8 +71,9 @@ public class Archiver {
                 decompressed.add(aByte);
                 continue;
             }
-            if (aByte > 0) {
-                for (int i = 0; i < aByte; i++) {
+            if (aByte >= 0) {
+                int finish = aByte + 2;
+                for (int i = 0; i < finish; i++) {
                     decompressed.add(buffer[iter]);
                 }
                 iter++;
@@ -90,15 +91,14 @@ public class Archiver {
     }
 
     public static void main(String[] args) {
-        String example = "aaaaaaaaccccccccccccccccccccccccccccccccccccccccccccccccccccccc" +
-                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" +
-                "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy" +
-                "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk";
+        String example = "1111";
         byte[] compressed = compressed(example.getBytes());
         String temp = new String(compressed);
         System.out.println("Размер начального: " + example.length() + " Размер сжатого: " + temp.length());
-        System.out.println();
-        FilesManager.writeFile("D:\\text.txt", compressed);
+        //FilesManager.writeFile("D:\\text.txt", compressed);
+        for (byte b: compressed) {
+            System.out.print(b + ":");
+        }
         System.out.println();
         String result = new String(deCompressed(compressed));
         System.out.println(result);

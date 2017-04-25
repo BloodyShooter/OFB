@@ -58,10 +58,8 @@ public class CryptographerOFB {
             BufferedInputStream bufferedReader = new BufferedInputStream(reader);
             byte[] buffer = new byte[(int) file.length()];
             FilesManager.readFile(bufferedReader, buffer);
-            System.out.println(buffer.length);
             byte[] bufferArch = Archiver.compressed(buffer);
             int fileSize = bufferArch.length;
-            System.out.println(bufferArch.length);
 
             int vector[] = initVector();
             int[] newValue = new int[2];
@@ -127,12 +125,8 @@ public class CryptographerOFB {
                 value[j + 1] = newValue[1];
             }
 
-            System.out.println(value.length);
-            byte[] temp = Transfer.intToByte(value);
-            byte[] temp2 = new byte[(int) file.length() - SIZE_FILE_WITH_KEY];
-            System.arraycopy(temp, 0, temp2, 0, temp2.length);
-            byte[] bufferArch = Archiver.deCompressed(temp2);
-            System.out.println(bufferArch.length);
+            System.arraycopy(Transfer.intToByte(value), 0, buffer, 0, buffer.length);
+            byte[] bufferArch = Archiver.deCompressed(buffer);
             FilesManager.writeFile(writer, bufferArch, bufferArch.length);
         } catch (IOException e) {
             e.printStackTrace();
