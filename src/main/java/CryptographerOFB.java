@@ -7,10 +7,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 
-/**
- *
- * @author Yagorka
- */
 public class CryptographerOFB {
 
     private static final int SIZE_BIG_BUFFER = 1024;

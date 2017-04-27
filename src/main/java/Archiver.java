@@ -1,4 +1,6 @@
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,16 +22,17 @@ public class Archiver {
         for (int i = 0; i < buffer.length - 1; i++) {
             if (i < buffer.length && buffer[i] == buffer[i + 1]) {
                 countEqualValues++;
-                if (countEqualValues == 130) {
-                    compressed.add((byte) (countEqualValues - 3));
-                    compressed.add(buffer[i]);
-                    countEqualValues = 1;
-                }
                 if (countUnequalValues > 1) {
                     compressed.add((byte) ((countUnequalValues - 1) * -1));
                     compressed.addAll(unequalSequence);
                 }
                 countUnequalValues = 0;
+                if (countEqualValues == 130) {
+                    compressed.add((byte) (countEqualValues - 3));
+                    compressed.add(buffer[i]);
+                    countEqualValues = 1;
+                    countUnequalValues = 1;
+                }
                 unequalSequence.clear();
             } else if (i < buffer.length && buffer[i] != buffer[i + 1]) {
                 countUnequalValues++;
@@ -91,19 +94,29 @@ public class Archiver {
     }
 
     public static void main(String[] args) {
-        String example = "1111";
-        byte[] compressed = compressed(example.getBytes());
+        byte[] example = null;
+        try {
+            example = FilesManager.readFile(new File("D:\\test\\test.doc"));
+        } catch (FileNotFoundException e) {
+            System.out.println("Файл не найден");
+            return;
+        }
+        byte[] compressed = compressed(example);
         String temp = new String(compressed);
-        System.out.println("Размер начального: " + example.length() + " Размер сжатого: " + temp.length());
-        //FilesManager.writeFile("D:\\text.txt", compressed);
+        System.out.println("Размер начального: " + example.length + " Размер сжатого: " + temp.length());
+        FilesManager.writeFile("D:\\test\\testCom.ZIP.doc", compressed);
         for (byte b: compressed) {
             System.out.print(b + ":");
         }
         System.out.println();
-        String result = new String(deCompressed(compressed));
+        byte[] resultByte = deCompressed(compressed);
+        String result = new String(resultByte);
         System.out.println(result);
-        if (example.equals(result)) {
-            System.out.println("Получилось");
+        FilesManager.writeFile("D:\\test\\text.unZIP.doc", resultByte);
+        if (new String(example).equals(result)) {
+            System.out.println("Получилсоь");
+        } else {
+            System.out.println("Не вышло");
         }
     }
 
