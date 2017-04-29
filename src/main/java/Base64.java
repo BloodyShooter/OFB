@@ -1,3 +1,5 @@
+import java.io.File;
+import java.io.FileNotFoundException;
 
 public class Base64 {
     static byte[] encodeData;
@@ -14,36 +16,18 @@ public class Base64 {
 
     private Base64() {}
 
-    /**
-     * base-64 encode a string
-     * @param s		The ascii string to encode
-     * @returns		The base64 encoded result
-     */
-
-    public static String
-    encode(String s) {
-        return encode(s.getBytes());
-    }
-
-    /**
-     * base-64 encode a byte array
-     * @param src	The byte array to encode
-     * @returns		The base64 encoded result
-     */
-
-    public static String
+    public static byte[]
     encode(byte[] src) {
         return encode(src, 0, src.length);
     }
 
-    public static String
+    public static byte[]
     encode(byte[] src, int start, int length) {
-        byte[] dst = new byte[(length+2)/3 * 4 + length/72];
+        byte[] dst = new byte[(length+2)/3 * 4];
         int x = 0;
         int dstIndex = 0;
         int state = 0;	// which char in pattern
         int old = 0;	// previous byte
-        int len = 0;	// length decoded so far
         int max = length + start;
         for (int srcIndex = start; srcIndex<max; srcIndex++) {
             x = src[srcIndex];
@@ -63,15 +47,11 @@ public class Base64 {
                     break;
             }
             old = x;
-            if (++len >= 72) {
+            /*if (++len >= 72) {
                 dst[dstIndex++] = (byte) '\n';
                 len = 0;
-            }
+            }*/
         }
-
-	/*
-	 * now clean up the end bytes
-	 */
 
         switch (state) {
             case 1: dst[dstIndex++] = encodeData[(old<<4) & 0x30];
@@ -82,16 +62,8 @@ public class Base64 {
                 dst[dstIndex++] = (byte) '=';
                 break;
         }
-        return new String(dst);
+        return dst;
     }
-
-    /**
-     * A Base64 decoder.  This implementation is slow, and
-     * doesn't handle wrapped lines.
-     * The output is undefined if there are errors in the input.
-     * @param s		a Base64 encoded string
-     * @returns		The byte array eith the decoded result
-     */
 
     public static byte[]
     decode(String s) {
@@ -128,22 +100,32 @@ public class Base64 {
                         break;
                 }
             }
-        } catch (ArrayIndexOutOfBoundsException e) {}
+        } catch (ArrayIndexOutOfBoundsException e) {
+        }
         return result;
     }
 
-    /**
-     * Test the decoder and encoder.
-     * Call as <code>Base64 [string]</code>.
-     */
-
     public static void
     main(String[] args) {
-        String str = "Привет";
-        String encodeStr = encode(str);
+        String str = "";
+        try {
+            str = new String(FilesManager.readFile(new File("D:\\test\\base64test\\test.txt")));
+        } catch (FileNotFoundException e) {
+            System.out.println("Файл не найден");
+            return;
+        }
+        byte[] encodeByte = encode(str.getBytes());
+        FilesManager.writeFile("D:\\test\\base64test\\test.ZIP.txt", encodeByte);
         System.out.println("encode: " + str + " -> ("
-                + encodeStr + ")");
+                + new String(encodeByte) + ")");
+        String finish = new String(decode(new String(encodeByte)));
         System.out.println("decode: " + str + " -> ("
-                + new String(decode(encodeStr)) + ")");
+                + finish + ")");
+        FilesManager.writeFile("D:\\test\\base64test\\text.unZIP.txt", finish.getBytes());
+        if (str.equals(finish)) {
+            System.out.println("Получилось");
+        } else {
+            System.out.println("Провал");
+        }
     }
 }
