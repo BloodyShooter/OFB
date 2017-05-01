@@ -13,6 +13,8 @@ public class CryptographerOFB {
     private static final int SIZE_SMALL_BUFFER = 8;
     private static final int SIZE_FILE_WITH_KEY = 16;
 
+    private String filename;
+
     public void encrypt(String pathFile, String password) throws FileNotFoundException {
         encryptWithArchiver(pathFile, password);
     }
@@ -68,7 +70,13 @@ public class CryptographerOFB {
                 value[j] = newValue[0];
                 value[j + 1] = newValue[1];
             }
-            FilesManager.writeFile(writer, Transfer.intToByte(value), fileSize);
+
+            byte[] temp = new byte[fileSize];
+            System.arraycopy(Transfer.intToByte(value), 0, temp, 0 , temp.length);
+
+            byte[] byteBase64 = Base64.encode(temp);
+            FilesManager.writeFile(writer, byteBase64, byteBase64.length);
+            //FilesManager.writeFile(writer, Transfer.intToByte(value), fileSize);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -108,6 +116,9 @@ public class CryptographerOFB {
             BufferedInputStream bufferedReader = new BufferedInputStream(reader);
             byte[] buffer = new byte[(int) file.length() - SIZE_FILE_WITH_KEY];
             FilesManager.readFile(bufferedReader, buffer);
+
+            System.out.println(buffer.length);
+            buffer = Base64.decode(new String(buffer));
 
             int vector[] = initVector();
             int[] newValue = new int[2];
