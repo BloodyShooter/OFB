@@ -10,8 +10,10 @@ import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -22,6 +24,9 @@ import javafx.stage.Stage;
  */
 public class MyApp extends Application{
 
+    private static final int WIDTH = 300;
+    private static final int HEIGHT = 210;
+
     CryptographerOFB cryptographerOFB;
 
     private Label lblStatus;
@@ -31,6 +36,7 @@ public class MyApp extends Application{
     private TextField txtDecrypt;
     private Button btnEncrypt;
     private Button btnDecrypt;
+    private MenuBar menuBar;
 
     public static void launchMyApp(String[] args) {
         launch(args);
@@ -99,9 +105,36 @@ public class MyApp extends Application{
                 lblDecrypt,
                 separator2,
                 lblStatus);
-        myStage.setScene(new Scene(root, 300, 180));
+
+        BorderPane rootNode = new BorderPane();
+        rootNode.setCenter(root);
+
+        myStage.setScene(new Scene(rootNode, WIDTH, HEIGHT));
         myStage.setResizable(false);
+
+        rootNode.setTop(getMenu());
+
         myStage.show();
+    }
+
+    private Node getMenu() {
+        menuBar = new MenuBar();
+
+        Menu file = new Menu("File");
+
+        MenuItem exit = new MenuItem("Выход");
+        exit.setOnAction(event -> Platform.exit());
+
+        CheckMenuItem arch = new CheckMenuItem("Архивация");
+        CheckMenuItem base64 = new CheckMenuItem("Трансп кодирование");
+        arch.setSelected(true);
+        base64.setSelected(true);
+
+        file.getItems().addAll(arch, base64, new SeparatorMenuItem(), exit);
+
+        menuBar.getMenus().add(file);
+
+        return menuBar;
     }
 
     private void FileChooserMethod(Stage myStage, TextField text, String textMsg) {
