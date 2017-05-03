@@ -117,8 +117,7 @@ public class CryptographerOFB {
             byte[] buffer = new byte[(int) file.length() - SIZE_FILE_WITH_KEY];
             FilesManager.readFile(bufferedReader, buffer);
 
-            System.out.println(buffer.length);
-            buffer = Base64.decode(new String(buffer));
+            buffer = Base64.decode(buffer);
 
             int vector[] = initVector();
             int[] newValue = new int[2];

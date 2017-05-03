@@ -26,8 +26,8 @@ public class Base64 {
         byte[] dst = new byte[(length+2)/3 * 4];
         int x = 0;
         int dstIndex = 0;
-        int state = 0;	// which char in pattern
-        int old = 0;	// previous byte
+        int state = 0;
+        int old = 0;
         int max = length + start;
         for (int srcIndex = start; srcIndex<max; srcIndex++) {
             x = src[srcIndex];
@@ -66,20 +66,20 @@ public class Base64 {
     }
 
     public static byte[]
-    decode(String s) {
-        int end = 0;	// end state
-        if (s.endsWith("=")) {
+    decode(byte[] bytes) {
+        int end = 0;
+        if (bytes[bytes.length - 1] == "=".getBytes()[0]) {
             end++;
         }
-        if (s.endsWith("==")) {
+        if (bytes[bytes.length - 2] == "=".getBytes()[0]) {
             end++;
         }
-        int len = (s.length() + 3)/4 * 3 - end;
+        int len = (bytes.length + 3)/4 * 3 - end;
         byte[] result = new byte[len];
         int dst = 0;
         try {
-            for(int src = 0; src< s.length(); src++) {
-                int code =  charSet.indexOf(s.charAt(src));
+            for(int src = 0; src< bytes.length; src++) {
+                int code =  charSet.indexOf(bytes[src] & 0xFF);
                 if (code == -1) {
                     break;
                 }
@@ -118,7 +118,7 @@ public class Base64 {
         FilesManager.writeFile("D:\\test\\base64test\\test.ZIP.txt", encodeByte);
         System.out.println("encode: " + str + " -> ("
                 + new String(encodeByte) + ")");
-        String finish = new String(decode(new String(encodeByte)));
+        String finish = new String(decode(encodeByte));
         System.out.println("decode: " + str + " -> ("
                 + finish + ")");
         FilesManager.writeFile("D:\\test\\base64test\\text.unZIP.txt", finish.getBytes());
