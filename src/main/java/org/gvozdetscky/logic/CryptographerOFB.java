@@ -1,3 +1,10 @@
+package org.gvozdetscky.logic;
+
+import org.gvozdetscky.exception.KeyException;
+import org.gvozdetscky.logic.Archiver.Archiver;
+import org.gvozdetscky.logic.base64.Base64;
+import org.gvozdetscky.utils.FilesManager;
+import org.gvozdetscky.utils.Transfer;
 
 import java.io.*;
 import java.security.MessageDigest;

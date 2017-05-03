@@ -1,6 +1,5 @@
-/**
- * Created by Егор on 30.03.2017.
- */
+package org.gvozdetscky.utils;
+
 public class Transfer {
 
     public static int[] byteToInt(byte[] data) {

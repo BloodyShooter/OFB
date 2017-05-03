@@ -1,3 +1,4 @@
+package org.gvozdetscky.view;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -15,17 +16,15 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.gvozdetscky.exception.KeyException;
+import org.gvozdetscky.logic.CryptographerOFB;
 
-/**
- *
- * @author Yagorka
- */
 public class MyApp extends Application{
 
     private static final int WIDTH = 300;
     private static final int HEIGHT = 210;
 
-    CryptographerOFB cryptographerOFB;
+    private CryptographerOFB cryptographerOFB;
 
     private Label lblStatus;
     private FileChooser fileChooser;
@@ -44,10 +43,23 @@ public class MyApp extends Application{
     @Override
     public void start(Stage myStage) throws Exception {
         myStage.setTitle("OFB");
+
+        BorderPane rootNode = new BorderPane();
+        rootNode.setCenter(initialWindow(myStage));
+
+        myStage.setScene(new Scene(rootNode, WIDTH, HEIGHT));
+        myStage.setResizable(false);
+
+        rootNode.setTop(getMenu());
+
+        myStage.show();
+    }
+
+    private Node initialWindow(Stage myStage) {
         fileChooser = new FileChooser();
         dialogPassword = new TextInputDialog("password");
 
-        lblStatus = new Label("MyApp");
+        lblStatus = new Label("org.gvozdetscky.view.MyApp");
         lblStatus.setTooltip(new Tooltip("Активный статус"));
         Label lblEncrypt = new Label("Шифрование");
         Label lblDecrypt = new Label("Дешифрование");
@@ -98,16 +110,7 @@ public class MyApp extends Application{
                 lblDecrypt,
                 separator2,
                 lblStatus);
-
-        BorderPane rootNode = new BorderPane();
-        rootNode.setCenter(root);
-
-        myStage.setScene(new Scene(rootNode, WIDTH, HEIGHT));
-        myStage.setResizable(false);
-
-        rootNode.setTop(getMenu());
-
-        myStage.show();
+        return root;
     }
 
     private Node getMenu() {

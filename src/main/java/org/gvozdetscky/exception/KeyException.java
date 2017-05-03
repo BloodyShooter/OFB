@@ -1,3 +1,5 @@
+package org.gvozdetscky.exception;
+
 /**
  *
  * @author Student

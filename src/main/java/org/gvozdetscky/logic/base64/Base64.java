@@ -1,3 +1,7 @@
+package org.gvozdetscky.logic.base64;
+
+import org.gvozdetscky.utils.FilesManager;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 

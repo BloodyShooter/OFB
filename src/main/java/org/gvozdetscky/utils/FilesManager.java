@@ -1,3 +1,5 @@
+package org.gvozdetscky.utils;
+
 import java.io.*;
 
 /**
@@ -14,6 +16,7 @@ public class FilesManager {
         } catch (FileNotFoundException e) {
             throw new FileNotFoundException("файл не найден");
         } catch (IOException e) {
+            throw new FileNotFoundException("ошибка ввода/вывода");
         }
         return buffer;
     }

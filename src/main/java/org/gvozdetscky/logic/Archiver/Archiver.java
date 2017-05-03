@@ -1,3 +1,6 @@
+package org.gvozdetscky.logic.Archiver;
+
+import org.gvozdetscky.utils.FilesManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -94,7 +97,7 @@ public class Archiver {
     }
 
     public static void main(String[] args) {
-        byte[] example = new byte[0];
+        byte[] example = null;
         try {
             example = FilesManager.readFile(new File("D:\\test\\test.txt"));
         } catch (FileNotFoundException e) {
