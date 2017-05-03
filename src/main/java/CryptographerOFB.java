@@ -15,12 +15,22 @@ public class CryptographerOFB {
 
     private String filename;
 
-    public void encrypt(String pathFile, String password) throws FileNotFoundException {
-        encryptWithArchiver(pathFile, password);
+    public void encrypt(String pathFile, String password,
+                        boolean isStatusArch, boolean isStatusBase64) throws FileNotFoundException {
+        if (isStatusArch || isStatusBase64) {
+            encryptWithArchiver(pathFile, password);
+        } else {
+            encryptInParts(pathFile, password);
+        }
     }
 
-    public void decrypt(String pathFile, String password) throws KeyException, FileNotFoundException {
-        decryptWithArchiver(pathFile, password);
+    public void decrypt(String pathFile, String password,
+                        boolean isStatusArch, boolean isStatusBase64) throws KeyException, FileNotFoundException {
+        if (isStatusArch || isStatusBase64) {
+            decryptWithArchiver(pathFile, password);
+        } else {
+            decryptInParts(pathFile, password);
+        }
     }
 
     private void encryptInParts(String pathFile, String password) throws FileNotFoundException {
@@ -59,17 +69,9 @@ public class CryptographerOFB {
             byte[] bufferArch = Archiver.compressed(buffer);
             int fileSize = bufferArch.length;
 
-            int vector[] = initVector();
-            int[] newValue = new int[2];
             int[] value = Transfer.byteToInt(bufferArch);
-            for (int j = 0; j < value.length; j += 2) {
-                encryptTEA(vector, key);
-                newValue[0] = value[j];
-                newValue[1] = value[j + 1];
-                encXOR(newValue, vector);
-                value[j] = newValue[0];
-                value[j + 1] = newValue[1];
-            }
+            int vector[] = initVector();
+            value = goAllElementShifr(value, key, vector);
 
             byte[] temp = new byte[fileSize];
             System.arraycopy(Transfer.intToByte(value), 0, temp, 0 , temp.length);
@@ -119,17 +121,9 @@ public class CryptographerOFB {
 
             buffer = Base64.decode(buffer);
 
-            int vector[] = initVector();
-            int[] newValue = new int[2];
             int[] value = Transfer.byteToInt(buffer);
-            for (int j = 0; j < value.length; j += 2) {
-                encryptTEA(vector, key);
-                newValue[0] = value[j];
-                newValue[1] = value[j + 1];
-                encXOR(newValue, vector);
-                value[j] = newValue[0];
-                value[j + 1] = newValue[1];
-            }
+            int vector[] = initVector();
+            value = goAllElementShifr(value, key, vector);
 
             System.arraycopy(Transfer.intToByte(value), 0, buffer, 0, buffer.length);
             byte[] bufferArch = Archiver.deCompressed(buffer);
@@ -204,19 +198,11 @@ public class CryptographerOFB {
         byte[] bufferValue = new byte[sizeBuffer];
         BufferedInputStream bufferReader = new BufferedInputStream(reader, sizeBuffer);
         BufferedOutputStream bufferWriter = new BufferedOutputStream(writer, sizeBuffer);
-        int[] newValue = new int[2];
 
         for (long i = 0; i < size; i++) {
             FilesManager.readFile(bufferReader, bufferValue);
             int[] value = Transfer.byteToInt(bufferValue);
-            for (int j = 0; j < value.length; j += 2) {
-                encryptTEA(vector, key);
-                newValue[0] = value[j];
-                newValue[1] = value[j + 1];
-                encXOR(newValue, vector);
-                value[j] = newValue[0];
-                value[j + 1] = newValue[1];
-            }
+            goAllElementShifr(value, key, vector);
             bufferValue = Transfer.intToByte(value);
             FilesManager.writeFile(bufferWriter, bufferValue);
         }
@@ -247,6 +233,20 @@ public class CryptographerOFB {
         encXOR(part2, vector);
 
         return new int[]{part1[0], part1[1], part2[0], part2[1]};
+    }
+
+    private int[] goAllElementShifr(int[] value, int[] key, int[] vector) {
+        int[] newValue = new int[2];
+        for (int j = 0; j < value.length; j += 2) {
+            encryptTEA(vector, key);
+            newValue[0] = value[j];
+            newValue[1] = value[j + 1];
+            encXOR(newValue, vector);
+            value[j] = newValue[0];
+            value[j + 1] = newValue[1];
+        }
+
+        return value;
     }
 
     private int[] initVector() {

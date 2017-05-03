@@ -37,6 +37,8 @@ public class MyApp extends Application{
     private Button btnEncrypt;
     private Button btnDecrypt;
     private MenuBar menuBar;
+    private CheckMenuItem arch;
+    private CheckMenuItem base64;
 
     public static void launchMyApp(String[] args) {
         launch(args);
@@ -125,8 +127,8 @@ public class MyApp extends Application{
         MenuItem exit = new MenuItem("Выход");
         exit.setOnAction(event -> Platform.exit());
 
-        CheckMenuItem arch = new CheckMenuItem("Архивация");
-        CheckMenuItem base64 = new CheckMenuItem("Трансп кодирование");
+        arch = new CheckMenuItem("Архивация");
+        base64 = new CheckMenuItem("Трансп кодирование");
         arch.setSelected(true);
         base64.setSelected(true);
 
@@ -162,7 +164,9 @@ public class MyApp extends Application{
             @Override
             protected Object call() throws Exception {
                 try {
-                    cryptographerOFB.encrypt(txtEncrypt.getText(), password.get());
+                    if (password.isPresent()) {
+                        cryptographerOFB.encrypt(txtEncrypt.getText(), password.get(), arch.isSelected(), base64.isSelected());
+                    }
                 } catch (FileNotFoundException e) {
                     setStatusText("Шифрование: файл не найден");
                 } catch (Exception e) {
@@ -192,7 +196,9 @@ public class MyApp extends Application{
             @Override
             protected Object call() throws Exception {
                 try {
-                    cryptographerOFB.decrypt(txtDecrypt.getText(), password.get());
+                    if (password.isPresent()) {
+                        cryptographerOFB.decrypt(txtDecrypt.getText(), password.get(), arch.isSelected(), base64.isSelected());
+                    }
                 } catch (FileNotFoundException | KeyException ex) {
                     setStatusText("Расшифровка: файл не найден");
                 } catch (Exception e) {
