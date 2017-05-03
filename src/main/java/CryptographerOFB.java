@@ -13,12 +13,10 @@ public class CryptographerOFB {
     private static final int SIZE_SMALL_BUFFER = 8;
     private static final int SIZE_FILE_WITH_KEY = 16;
 
-    private String filename;
-
     public void encrypt(String pathFile, String password,
                         boolean isStatusArch, boolean isStatusBase64) throws FileNotFoundException {
         if (isStatusArch || isStatusBase64) {
-            encryptWithArchiver(pathFile, password);
+            encryptWithArchiver(pathFile, password, isStatusArch, isStatusBase64);
         } else {
             encryptInParts(pathFile, password);
         }
@@ -27,7 +25,7 @@ public class CryptographerOFB {
     public void decrypt(String pathFile, String password,
                         boolean isStatusArch, boolean isStatusBase64) throws KeyException, FileNotFoundException {
         if (isStatusArch || isStatusBase64) {
-            decryptWithArchiver(pathFile, password);
+            decryptWithArchiver(pathFile, password, isStatusArch, isStatusBase64);
         } else {
             decryptInParts(pathFile, password);
         }
@@ -51,7 +49,8 @@ public class CryptographerOFB {
         }
     }
 
-    private void encryptWithArchiver(String pathFile, String password) throws FileNotFoundException {
+    private void encryptWithArchiver(String pathFile, String password,
+                                     boolean isStatusArch, boolean isStatusBase64) throws FileNotFoundException {
         File file = new File(pathFile);
         byte keyBytes[] = generateKey();
         int[] hashKey = Transfer.byteToInt(getHashMD5(password));
@@ -59,27 +58,38 @@ public class CryptographerOFB {
         int[] key = Transfer.byteToInt(keyBytes);
         int[] cipheredKey = encryptKeyOFB(key, hashKey);
 
-        try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
+        String fileName = pathFile;
+
+        if (isStatusArch) fileName += ".rle";
+        fileName += ".enc";
+        if (isStatusBase64) fileName += ".bs64";
+
+        try (FileOutputStream writer = new FileOutputStream(fileName);
              FileInputStream reader = new FileInputStream(pathFile)) {
             writer.write(Transfer.intToByte(cipheredKey));
 
             BufferedInputStream bufferedReader = new BufferedInputStream(reader);
             byte[] buffer = new byte[(int) file.length()];
             FilesManager.readFile(bufferedReader, buffer);
-            byte[] bufferArch = Archiver.compressed(buffer);
-            int fileSize = bufferArch.length;
 
-            int[] value = Transfer.byteToInt(bufferArch);
+            if (isStatusArch) {
+                buffer = Archiver.compressed(buffer);
+            }
+            int fileSize = buffer.length;
+
+            int[] value = Transfer.byteToInt(buffer);
             int vector[] = initVector();
             value = goAllElementShifr(value, key, vector);
 
-            byte[] temp = new byte[fileSize];
-            System.arraycopy(Transfer.intToByte(value), 0, temp, 0 , temp.length);
+            if (isStatusBase64) {
+                byte[] temp = new byte[fileSize];
+                System.arraycopy(Transfer.intToByte(value), 0, temp, 0, temp.length);
 
-            byte[] byteBase64 = Base64.encode(temp);
-            FilesManager.writeFile(writer, byteBase64, byteBase64.length);
-            //FilesManager.writeFile(writer, Transfer.intToByte(value), fileSize);
-
+                byte[] byteBase64 = Base64.encode(temp);
+                FilesManager.writeFile(writer, byteBase64, byteBase64.length);
+            } else {
+                FilesManager.writeFile(writer, Transfer.intToByte(value), fileSize);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -103,12 +113,15 @@ public class CryptographerOFB {
         }
     }
 
-    private void decryptWithArchiver(String pathFile, String password) throws KeyException, FileNotFoundException {
+    private void decryptWithArchiver(String pathFile, String password,
+                                     boolean isStatusArch, boolean isStatusBase64) throws KeyException, FileNotFoundException {
         File file = new File(pathFile);
         int[] hashKey = Transfer.byteToInt(getHashMD5(password));
         byte[] keyBytes = new byte[SIZE_FILE_WITH_KEY];
 
-        String s = file.getName().substring(0, file.getName().lastIndexOf("."));
+        //String s = file.getName().substring(0, file.getName().lastIndexOf("."));
+        String[] tokens = file.getName().split("\\.");
+        String s = tokens[0] + "." + tokens[1];
 
         try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
              FileInputStream reader = new FileInputStream(pathFile)) {
@@ -119,15 +132,21 @@ public class CryptographerOFB {
             byte[] buffer = new byte[(int) file.length() - SIZE_FILE_WITH_KEY];
             FilesManager.readFile(bufferedReader, buffer);
 
-            buffer = Base64.decode(buffer);
+            if (isStatusBase64) {
+                buffer = Base64.decode(buffer);
+            }
 
             int[] value = Transfer.byteToInt(buffer);
             int vector[] = initVector();
             value = goAllElementShifr(value, key, vector);
 
             System.arraycopy(Transfer.intToByte(value), 0, buffer, 0, buffer.length);
-            byte[] bufferArch = Archiver.deCompressed(buffer);
-            FilesManager.writeFile(writer, bufferArch, bufferArch.length);
+            if (isStatusArch) {
+                byte[] bufferArch = Archiver.deCompressed(buffer);
+                FilesManager.writeFile(writer, bufferArch, bufferArch.length);
+            } else {
+                FilesManager.writeFile(writer, buffer, buffer.length);
+            }
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());

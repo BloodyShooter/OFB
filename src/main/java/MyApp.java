@@ -1,5 +1,4 @@
 
-import java.io.Externalizable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Optional;
@@ -8,7 +7,6 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -36,7 +34,6 @@ public class MyApp extends Application{
     private TextField txtDecrypt;
     private Button btnEncrypt;
     private Button btnDecrypt;
-    private MenuBar menuBar;
     private CheckMenuItem arch;
     private CheckMenuItem base64;
 
@@ -62,30 +59,24 @@ public class MyApp extends Application{
         txtDecrypt.setTooltip(new Tooltip("Введите файл для дешифрования"));
 
         Button btnChooserEncFile = new Button("Open...");
-        btnChooserEncFile.setOnAction((ActionEvent event) -> {
-            FileChooserMethod(myStage, txtEncrypt, "Открытие файла");
-        });
+        btnChooserEncFile.setOnAction((ActionEvent event) ->
+                FileChooserMethod(myStage, txtEncrypt, "Открытие файла"));
         btnChooserEncFile.setTooltip(new Tooltip("Проводник выбора файлов"));
 
         Button btnChooserDecFile = new Button();
         btnChooserDecFile.setText("Open...");
-        btnChooserDecFile.setOnAction((ActionEvent event) -> {
-            FileChooserMethod(myStage, txtDecrypt, "Открыте зашифрованного файла");
-        });
+        btnChooserDecFile.setOnAction((ActionEvent event) ->
+                FileChooserMethod(myStage, txtDecrypt, "Открыте зашифрованного файла"));
         btnChooserDecFile.setTooltip(new Tooltip("Проводник выбора файлов"));
 
         btnEncrypt = new Button();
         btnEncrypt.setText("Encrypt");
-        btnEncrypt.setOnAction((ActionEvent event) -> {
-            encrypt();
-        });
+        btnEncrypt.setOnAction((ActionEvent event) -> encrypt());
         btnEncrypt.setTooltip(new Tooltip("Run"));
 
         btnDecrypt = new Button();
         btnDecrypt.setText("Decrypt");
-        btnDecrypt.setOnAction((ActionEvent event) -> {
-            decrypt();
-        });
+        btnDecrypt.setOnAction((ActionEvent event) -> decrypt());
         btnDecrypt.setTooltip(new Tooltip("Run"));
 
         Separator separator1 = new Separator();
@@ -120,7 +111,7 @@ public class MyApp extends Application{
     }
 
     private Node getMenu() {
-        menuBar = new MenuBar();
+        MenuBar menuBar = new MenuBar();
 
         Menu file = new Menu("File");
 

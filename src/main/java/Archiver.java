@@ -94,9 +94,9 @@ public class Archiver {
     }
 
     public static void main(String[] args) {
-        byte[] example = null;
+        byte[] example = new byte[0];
         try {
-            example = FilesManager.readFile(new File("D:\\test\\test.doc"));
+            example = FilesManager.readFile(new File("D:\\test\\test.txt"));
         } catch (FileNotFoundException e) {
             System.out.println("Файл не найден");
             return;
@@ -104,7 +104,7 @@ public class Archiver {
         byte[] compressed = compressed(example);
         String temp = new String(compressed);
         System.out.println("Размер начального: " + example.length + " Размер сжатого: " + temp.length());
-        FilesManager.writeFile("D:\\test\\testCom.ZIP.doc", compressed);
+        FilesManager.writeFile("D:\\test\\testCom.ZIP.txt", compressed);
         for (byte b: compressed) {
             System.out.print(b + ":");
         }
@@ -112,7 +112,7 @@ public class Archiver {
         byte[] resultByte = deCompressed(compressed);
         String result = new String(resultByte);
         System.out.println(result);
-        FilesManager.writeFile("D:\\test\\text.unZIP.doc", resultByte);
+        FilesManager.writeFile("D:\\test\\text.unZIP.txt", resultByte);
         if (new String(example).equals(result)) {
             System.out.println("Получилсоь");
         } else {
