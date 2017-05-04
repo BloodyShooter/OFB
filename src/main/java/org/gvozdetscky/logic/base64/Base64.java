@@ -20,20 +20,18 @@ public class Base64 {
 
     private Base64() {}
 
-    public static byte[]
-    encode(byte[] src) {
+    public static byte[] encode(byte[] src) {
         return encode(src, 0, src.length);
     }
 
-    public static byte[]
-    encode(byte[] src, int start, int length) {
+    public static byte[] encode(byte[] src, int start, int length) {
         byte[] dst = new byte[(length+2)/3 * 4];
         int x = 0;
         int dstIndex = 0;
         int state = 0;
         int old = 0;
         int max = length + start;
-        for (int srcIndex = start; srcIndex<max; srcIndex++) {
+        for (int srcIndex = start; srcIndex < max; srcIndex++) {
             x = src[srcIndex];
             switch (++state) {
                 case 1:
@@ -69,8 +67,7 @@ public class Base64 {
         return dst;
     }
 
-    public static byte[]
-    decode(byte[] bytes) {
+    public static byte[] decode(byte[] bytes) {
         int end = 0;
         if (bytes[bytes.length - 1] == "=".getBytes()[0]) {
             end++;
@@ -109,8 +106,7 @@ public class Base64 {
         return result;
     }
 
-    public static void
-    main(String[] args) {
+    public static void main(String[] args) {
         String str = "";
         try {
             str = new String(FilesManager.readFile(new File("D:\\test\\base64test\\test.txt")));
@@ -119,13 +115,13 @@ public class Base64 {
             return;
         }
         byte[] encodeByte = encode(str.getBytes());
-        FilesManager.writeFile("D:\\test\\base64test\\test.ZIP.txt", encodeByte);
+        FilesManager.writeFile("D:\\test\\base64test\\test.base64.txt", encodeByte);
         System.out.println("encode: " + str + " -> ("
                 + new String(encodeByte) + ")");
         String finish = new String(decode(encodeByte));
         System.out.println("decode: " + str + " -> ("
                 + finish + ")");
-        FilesManager.writeFile("D:\\test\\base64test\\text.unZIP.txt", finish.getBytes());
+        FilesManager.writeFile("D:\\test\\base64test\\text.unBase64.txt", finish.getBytes());
         if (str.equals(finish)) {
             System.out.println("Получилось");
         } else {

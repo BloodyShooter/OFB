@@ -14,6 +14,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.gvozdetscky.exception.KeyException;
@@ -22,9 +23,12 @@ import org.gvozdetscky.logic.CryptographerOFB;
 public class MyApp extends Application{
 
     private static final int WIDTH = 300;
-    private static final int HEIGHT = 210;
+    private static final int HEIGHT = 340;
 
     private CryptographerOFB cryptographerOFB;
+    private Boolean isStatusArch = true;
+    private Boolean isStatusBase64 = true;
+    private Boolean isStatusWithKey = true;
 
     private Label lblStatus;
     private FileChooser fileChooser;
@@ -35,6 +39,9 @@ public class MyApp extends Application{
     private Button btnDecrypt;
     private CheckMenuItem arch;
     private CheckMenuItem base64;
+    private ToggleButton tgArch;
+    private ToggleButton tgBase64;
+    private ToggleButton tgWithKey;
 
     public static void launchMyApp(String[] args) {
         launch(args);
@@ -91,10 +98,40 @@ public class MyApp extends Application{
         btnDecrypt.setOnAction((ActionEvent event) -> decrypt());
         btnDecrypt.setTooltip(new Tooltip("Run"));
 
+        tgArch = new RadioButton("Архивация");
+        tgArch.setSelected(isStatusArch);
+        tgArch.setOnAction(event -> {
+            isStatusArch = !isStatusArch;
+            arch.setSelected(isStatusArch);
+        });
+        tgBase64 = new RadioButton("Тр. кодирование");
+        tgBase64.setSelected(isStatusBase64);
+        tgBase64.setOnAction(event -> {
+            isStatusBase64 = !isStatusBase64;
+            base64.setSelected(isStatusBase64);
+        });
+        tgWithKey = new RadioButton("Ипользовать ключ сеанса");
+        tgWithKey.setSelected(isStatusWithKey);
+        tgWithKey.setOnAction(event -> {
+            isStatusWithKey = !isStatusWithKey;
+            tgWithKey.setSelected(isStatusWithKey);
+            System.out.println(isStatusWithKey);
+        });
+
         Separator separator1 = new Separator();
         Separator separator2 = new Separator();
+        Separator separator3 = new Separator();
         separator1.setPrefWidth(290);
         separator2.setPrefWidth(290);
+        separator3.setPrefWidth(290);
+
+        VBox lvl3 = new VBox(10);
+        lvl3.setAlignment(Pos.BASELINE_LEFT);
+        lvl3.getChildren().addAll(tgWithKey, tgBase64, tgArch);
+
+        VBox container = new VBox(10);
+        container.setAlignment(Pos.CENTER);
+        container.getChildren().addAll(lvl3, new Label("Настройки"));
 
         FlowPane root = new FlowPane(10, 10);
         root.setAlignment(Pos.CENTER);
@@ -109,6 +146,8 @@ public class MyApp extends Application{
                 btnDecrypt,
                 lblDecrypt,
                 separator2,
+                container,
+                separator3,
                 lblStatus);
         return root;
     }
@@ -123,8 +162,16 @@ public class MyApp extends Application{
 
         arch = new CheckMenuItem("Архивация");
         base64 = new CheckMenuItem("Трансп кодирование");
-        arch.setSelected(true);
-        base64.setSelected(true);
+        arch.setSelected(isStatusArch);
+        base64.setSelected(isStatusBase64);
+        arch.setOnAction(event -> {
+            isStatusArch = !isStatusArch;
+            tgArch.setSelected(isStatusArch);
+        });
+        base64.setOnAction(event -> {
+            isStatusBase64 = !isStatusBase64;
+            tgBase64.setSelected(isStatusBase64);
+        });
 
         file.getItems().addAll(arch, base64, new SeparatorMenuItem(), exit);
 
@@ -159,7 +206,7 @@ public class MyApp extends Application{
             protected Object call() throws Exception {
                 try {
                     if (password.isPresent()) {
-                        cryptographerOFB.encrypt(txtEncrypt.getText(), password.get(), arch.isSelected(), base64.isSelected());
+                        cryptographerOFB.encrypt(txtEncrypt.getText(), password.get(), isStatusArch, isStatusBase64);
                     }
                 } catch (FileNotFoundException e) {
                     setStatusText("Шифрование: файл не найден");
@@ -191,7 +238,7 @@ public class MyApp extends Application{
             protected Object call() throws Exception {
                 try {
                     if (password.isPresent()) {
-                        cryptographerOFB.decrypt(txtDecrypt.getText(), password.get(), arch.isSelected(), base64.isSelected());
+                        cryptographerOFB.decrypt(txtDecrypt.getText(), password.get(), isStatusArch, isStatusBase64);
                     }
                 } catch (FileNotFoundException | KeyException ex) {
                     setStatusText("Расшифровка: файл не найден");
