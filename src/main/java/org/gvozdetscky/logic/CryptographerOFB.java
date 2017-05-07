@@ -56,6 +56,22 @@ public class CryptographerOFB {
         }
     }
 
+    public void encryptInParts(String pathFile) throws FileNotFoundException {
+        File file = new File(pathFile);
+        byte keyBytes[] = generateKey();
+
+        FilesManager.writeFile(file.getParent() + "\\key", keyBytes);
+        int[] key = Transfer.byteToInt(keyBytes);
+
+        try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
+             FileInputStream reader = new FileInputStream(pathFile)) {
+            runEncryptOFB(writer, reader, file.length(), key);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
+    }
+
     private void encryptWithArchiver(String pathFile, String password,
                                      boolean isStatusArch, boolean isStatusBase64) throws FileNotFoundException {
         File file = new File(pathFile);
@@ -115,6 +131,21 @@ public class CryptographerOFB {
             int[] key = encryptKeyOFB(Transfer.byteToInt(keyBytes), hashKey);
 
             runEncryptOFB(writer, reader, file.length() - SIZE_FILE_WITH_KEY, key);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void decryptInParts(String pathFile) throws KeyException, FileNotFoundException {
+        File file = new File(pathFile);
+
+        String s = file.getName().substring(0, file.getName().lastIndexOf("."));
+        byte[] keyBytes = FilesManager.readFile(new File(file.getParent() + "\\key"));
+        int[] key = Transfer.byteToInt(keyBytes);
+
+        try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
+             FileInputStream reader = new FileInputStream(pathFile)) {
+            runEncryptOFB(writer, reader, file.length(), key);
         } catch (IOException e) {
             e.printStackTrace();
         }

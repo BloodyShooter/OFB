@@ -24,7 +24,7 @@ public class test {
 
         System.out.println();
         Optional<Integer> maxVal = list.stream().max(Integer::compare);
-        maxVal.ifPresent(integer -> System.out.println("Максимальное значение: " + integer));
+        if (maxVal.isPresent()) System.out.println(maxVal.get());
 
         list.stream().parallel().min(Integer::compare)
                 .ifPresent(integer -> System.out.println("Минимальное значение: " + integer));

@@ -27,7 +27,7 @@ public class MyApp extends Application{
 
     private CryptographerOFB cryptographerOFB;
     private Boolean isStatusArch = true;
-    private Boolean isStatusBase64 = true;
+    private Boolean isStatusBase64 = false;
     private Boolean isStatusWithKey = true;
 
     private Label lblStatus;
@@ -39,6 +39,7 @@ public class MyApp extends Application{
     private Button btnDecrypt;
     private CheckMenuItem arch;
     private CheckMenuItem base64;
+    private CheckMenuItem withKey;
     private ToggleButton tgArch;
     private ToggleButton tgBase64;
     private ToggleButton tgWithKey;
@@ -104,19 +105,21 @@ public class MyApp extends Application{
             isStatusArch = !isStatusArch;
             arch.setSelected(isStatusArch);
         });
+        tgArch.setTooltip(new Tooltip("Использовать архивацию при работе программы"));
         tgBase64 = new RadioButton("Тр. кодирование");
         tgBase64.setSelected(isStatusBase64);
         tgBase64.setOnAction(event -> {
             isStatusBase64 = !isStatusBase64;
             base64.setSelected(isStatusBase64);
         });
+        tgBase64.setTooltip(new Tooltip("Использовать транспортное кодирование при работе программы"));
         tgWithKey = new RadioButton("Ипользовать ключ сеанса");
         tgWithKey.setSelected(isStatusWithKey);
         tgWithKey.setOnAction(event -> {
             isStatusWithKey = !isStatusWithKey;
-            tgWithKey.setSelected(isStatusWithKey);
-            System.out.println(isStatusWithKey);
+            withKey.setSelected(isStatusWithKey);
         });
+        tgWithKey.setTooltip(new Tooltip("Ипользовать ключ сеанса"));
 
         Separator separator1 = new Separator();
         Separator separator2 = new Separator();
@@ -127,7 +130,7 @@ public class MyApp extends Application{
 
         VBox lvl3 = new VBox(10);
         lvl3.setAlignment(Pos.BASELINE_LEFT);
-        lvl3.getChildren().addAll(tgWithKey, tgBase64, tgArch);
+        lvl3.getChildren().addAll(separator2, tgArch, tgBase64, tgWithKey);
 
         VBox container = new VBox(10);
         container.setAlignment(Pos.CENTER);
@@ -145,7 +148,6 @@ public class MyApp extends Application{
                 txtDecrypt,
                 btnDecrypt,
                 lblDecrypt,
-                separator2,
                 container,
                 separator3,
                 lblStatus);
@@ -162,8 +164,10 @@ public class MyApp extends Application{
 
         arch = new CheckMenuItem("Архивация");
         base64 = new CheckMenuItem("Трансп кодирование");
+        withKey = new CheckMenuItem("Ключ сеанса");
         arch.setSelected(isStatusArch);
         base64.setSelected(isStatusBase64);
+        withKey.setSelected(isStatusWithKey);
         arch.setOnAction(event -> {
             isStatusArch = !isStatusArch;
             tgArch.setSelected(isStatusArch);
@@ -172,8 +176,12 @@ public class MyApp extends Application{
             isStatusBase64 = !isStatusBase64;
             tgBase64.setSelected(isStatusBase64);
         });
+        withKey.setOnAction(event -> {
+            isStatusWithKey = !isStatusWithKey;
+            tgWithKey.setSelected(isStatusWithKey);
+        });
 
-        file.getItems().addAll(arch, base64, new SeparatorMenuItem(), exit);
+        file.getItems().addAll(arch, base64, withKey, new SeparatorMenuItem(), exit);
 
         menuBar.getMenus().add(file);
 
@@ -198,27 +206,48 @@ public class MyApp extends Application{
     }
 
     private void runEncrypt() {
-        Optional<String> password = getPasswordFromDialog("Шифрование");
-        lblStatus.setText("Шиврование: в процессе");
-        lockActionButton();
-        Task newTask = new Task() {
-            @Override
-            protected Object call() throws Exception {
-                try {
-                    if (password.isPresent()) {
-                        cryptographerOFB.encrypt(txtEncrypt.getText(), password.get(), isStatusArch, isStatusBase64);
+        if (isStatusWithKey) {
+            lblStatus.setText("Шиврование: в процессе");
+            lockActionButton();
+            Task newTask = new Task() {
+                @Override
+                protected Object call() throws Exception {
+                    try {
+                        cryptographerOFB.encryptInParts(txtEncrypt.getText());
+                    } catch (FileNotFoundException e) {
+                        setStatusText("Шифрование: файл не найден");
+                    } catch (Exception e) {
+                        setStatusText("Шифрование: что то пошло не так");
                     }
-                } catch (FileNotFoundException e) {
-                    setStatusText("Шифрование: файл не найден");
-                } catch (Exception e) {
-                    setStatusText("Шифрование: что то пошло не так");
+                    unlockActionButton();
+                    setStatusText("Шифрование: готова");
+                    return null;
                 }
-                unlockActionButton();
-                setStatusText("Шифрование: готова");
-                return null;
-            }
-        };
-        new Thread(newTask).start();
+            };
+            new Thread(newTask).start();
+        } else {
+            Optional<String> password = getPasswordFromDialog("Шифрование");
+            lblStatus.setText("Шиврование: в процессе");
+            lockActionButton();
+            Task newTask = new Task() {
+                @Override
+                protected Object call() throws Exception {
+                    try {
+                        if (password.isPresent()) {
+                            cryptographerOFB.encrypt(txtEncrypt.getText(), password.get(), isStatusArch, isStatusBase64);
+                        }
+                    } catch (FileNotFoundException e) {
+                        setStatusText("Шифрование: файл не найден");
+                    } catch (Exception e) {
+                        setStatusText("Шифрование: что то пошло не так");
+                    }
+                    unlockActionButton();
+                    setStatusText("Шифрование: готова");
+                    return null;
+                }
+            };
+            new Thread(newTask).start();
+        }
     }
 
     private void decrypt() {
@@ -230,27 +259,48 @@ public class MyApp extends Application{
     }
 
     private void runDecrypt() {
-        Optional<String> password = getPasswordFromDialog("Расшифровка");
-        lblStatus.setText("Расшифровка: в процессе");
-        lockActionButton();
-        Task newTask = new Task() {
-            @Override
-            protected Object call() throws Exception {
-                try {
-                    if (password.isPresent()) {
-                        cryptographerOFB.decrypt(txtDecrypt.getText(), password.get(), isStatusArch, isStatusBase64);
+        if (isStatusWithKey) {
+            lblStatus.setText("Расшифровка: в процессе");
+            lockActionButton();
+            Task newTask = new Task() {
+                @Override
+                protected Object call() throws Exception {
+                    try {
+                        cryptographerOFB.decryptInParts(txtDecrypt.getText());
+                    } catch (FileNotFoundException | KeyException ex) {
+                        setStatusText("Расшифровка: файл не найден");
+                    } catch (Exception e) {
+                        setStatusText("Расшифровка: что то пошло не так");
                     }
-                } catch (FileNotFoundException | KeyException ex) {
-                    setStatusText("Расшифровка: файл не найден");
-                } catch (Exception e) {
-                    setStatusText("Расшифровка: что то пошло не так");
+                    unlockActionButton();
+                    setStatusText("Расшифровка: готова");
+                    return null;
                 }
-                unlockActionButton();
-                setStatusText("Расшифровка: готова");
-                return null;
-            }
-        };
-        new Thread(newTask).start();
+            };
+            new Thread(newTask).start();
+        } else {
+            Optional<String> password = getPasswordFromDialog("Расшифровка");
+            lblStatus.setText("Расшифровка: в процессе");
+            lockActionButton();
+            Task newTask = new Task() {
+                @Override
+                protected Object call() throws Exception {
+                    try {
+                        if (password.isPresent()) {
+                            cryptographerOFB.decrypt(txtDecrypt.getText(), password.get(), isStatusArch, isStatusBase64);
+                        }
+                    } catch (FileNotFoundException | KeyException ex) {
+                        setStatusText("Расшифровка: файл не найден");
+                    } catch (Exception e) {
+                        setStatusText("Расшифровка: что то пошло не так");
+                    }
+                    unlockActionButton();
+                    setStatusText("Расшифровка: готова");
+                    return null;
+                }
+            };
+            new Thread(newTask).start();
+        }
     }
 
     private Optional<String> getPasswordFromDialog(String text) {
