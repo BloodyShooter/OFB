@@ -23,8 +23,8 @@ public class test {
                 .forEach(integer -> System.out.print(integer + ":"));
 
         System.out.println();
-        Optional<Integer> maxVal = list.stream().max(Integer::compare);
-        if (maxVal.isPresent()) System.out.println(maxVal.get());
+        list.stream().max(Integer::compare)
+                .ifPresent(integer -> System.out.println("Максимальное значение: " + integer));
 
         list.stream().parallel().min(Integer::compare)
                 .ifPresent(integer -> System.out.println("Минимальное значение: " + integer));

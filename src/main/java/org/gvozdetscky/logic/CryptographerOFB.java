@@ -39,32 +39,23 @@ public class CryptographerOFB {
     }
 
     private void encryptInParts(String pathFile, String password) throws FileNotFoundException {
+        int[] hashKey;
+        int[] cipheredKey = null;
         File file = new File(pathFile);
+
         byte keyBytes[] = generateKey();
-        int[] hashKey = Transfer.byteToInt(getHashMD5(password));
+        if (password != null) {
+            hashKey = Transfer.byteToInt(getHashMD5(password));
+            cipheredKey = encryptKeyOFB(Transfer.byteToInt(keyBytes), hashKey);
+        } else {
+            FilesManager.writeFile(file.getParent() + "\\key", keyBytes);
+        }
 
         int[] key = Transfer.byteToInt(keyBytes);
-        int[] cipheredKey = encryptKeyOFB(key, hashKey);
 
         try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
                 FileInputStream reader = new FileInputStream(pathFile)) {
-            writer.write(Transfer.intToByte(cipheredKey));
-            runEncryptOFB(writer, reader, file.length(), key);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println(e.getMessage());
-        }
-    }
-
-    public void encryptInParts(String pathFile) throws FileNotFoundException {
-        File file = new File(pathFile);
-        byte keyBytes[] = generateKey();
-
-        FilesManager.writeFile(file.getParent() + "\\key", keyBytes);
-        int[] key = Transfer.byteToInt(keyBytes);
-
-        try (FileOutputStream writer = new FileOutputStream(pathFile + ".enc");
-             FileInputStream reader = new FileInputStream(pathFile)) {
+            if (password != null) writer.write(Transfer.intToByte(cipheredKey));
             runEncryptOFB(writer, reader, file.length(), key);
         } catch (IOException e) {
             e.printStackTrace();
@@ -76,10 +67,15 @@ public class CryptographerOFB {
                                      boolean isStatusArch, boolean isStatusBase64) throws FileNotFoundException {
         File file = new File(pathFile);
         byte keyBytes[] = generateKey();
-        int[] hashKey = Transfer.byteToInt(getHashMD5(password));
-
+        int[] cipheredKey = null;
         int[] key = Transfer.byteToInt(keyBytes);
-        int[] cipheredKey = encryptKeyOFB(key, hashKey);
+
+        if (password != null) {
+            int[] hashKey = Transfer.byteToInt(getHashMD5(password));
+            cipheredKey = encryptKeyOFB(key, hashKey);
+        } else {
+            FilesManager.writeFile(file.getParent() + "\\key", keyBytes);
+        }
 
         String fileName = pathFile;
 
@@ -89,7 +85,9 @@ public class CryptographerOFB {
 
         try (FileOutputStream writer = new FileOutputStream(fileName);
              FileInputStream reader = new FileInputStream(pathFile)) {
-            writer.write(Transfer.intToByte(cipheredKey));
+            if (password != null) {
+                writer.write(Transfer.intToByte(cipheredKey));
+            }
 
             BufferedInputStream bufferedReader = new BufferedInputStream(reader);
             byte[] buffer = new byte[(int) file.length()];
@@ -119,33 +117,27 @@ public class CryptographerOFB {
     }
 
     private void decryptInParts(String pathFile, String password) throws KeyException, FileNotFoundException {
-        File file = new File(pathFile);
-        int[] hashKey = Transfer.byteToInt(getHashMD5(password));
         byte[] keyBytes = new byte[SIZE_FILE_WITH_KEY];
-
-        String s = file.getName().substring(0, file.getName().lastIndexOf("."));
-
-        try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
-             FileInputStream reader = new FileInputStream(pathFile)) {
-            FilesManager.readFile(new BufferedInputStream(reader, SIZE_FILE_WITH_KEY), keyBytes);
-            int[] key = encryptKeyOFB(Transfer.byteToInt(keyBytes), hashKey);
-
-            runEncryptOFB(writer, reader, file.length() - SIZE_FILE_WITH_KEY, key);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void decryptInParts(String pathFile) throws KeyException, FileNotFoundException {
+        int[] hashKey = null;
         File file = new File(pathFile);
 
+        if (password != null) {
+            hashKey = Transfer.byteToInt(getHashMD5(password));
+        }
+
         String s = file.getName().substring(0, file.getName().lastIndexOf("."));
-        byte[] keyBytes = FilesManager.readFile(new File(file.getParent() + "\\key"));
-        int[] key = Transfer.byteToInt(keyBytes);
 
         try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
              FileInputStream reader = new FileInputStream(pathFile)) {
-            runEncryptOFB(writer, reader, file.length(), key);
+            if (password != null) {
+                FilesManager.readFile(new BufferedInputStream(reader, SIZE_FILE_WITH_KEY), keyBytes);
+                int[] key = encryptKeyOFB(Transfer.byteToInt(keyBytes), hashKey);
+                runEncryptOFB(writer, reader, file.length() - SIZE_FILE_WITH_KEY, key);
+            } else {
+                keyBytes = FilesManager.readFile(new File(file.getParent() + "\\key"));
+                int[] key = Transfer.byteToInt(keyBytes);
+                runEncryptOFB(writer, reader, file.length(), key);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -154,8 +146,8 @@ public class CryptographerOFB {
     private void decryptWithArchiver(String pathFile, String password,
                                      boolean isStatusArch, boolean isStatusBase64) throws KeyException, FileNotFoundException {
         File file = new File(pathFile);
-        int[] hashKey = Transfer.byteToInt(getHashMD5(password));
         byte[] keyBytes = new byte[SIZE_FILE_WITH_KEY];
+        int[] key;
 
         //String s = file.getName().substring(0, file.getName().lastIndexOf("."));
         String[] tokens = file.getName().split("\\.");
@@ -163,11 +155,21 @@ public class CryptographerOFB {
 
         try (FileOutputStream writer = new FileOutputStream(file.getParent() + "\\" + s);
              FileInputStream reader = new FileInputStream(pathFile)) {
-            FilesManager.readFile(new BufferedInputStream(reader, SIZE_FILE_WITH_KEY), keyBytes);
-            int[] key = encryptKeyOFB(Transfer.byteToInt(keyBytes), hashKey);
+            if (password != null) {
+                FilesManager.readFile(new BufferedInputStream(reader, SIZE_FILE_WITH_KEY), keyBytes);
+                int[] hashKey = Transfer.byteToInt(getHashMD5(password));
+                key = encryptKeyOFB(Transfer.byteToInt(keyBytes), hashKey);
+            } else {
+                key = Transfer.byteToInt(FilesManager.readFile(new File(file.getParent() + "\\key")));
+            }
 
             BufferedInputStream bufferedReader = new BufferedInputStream(reader);
-            byte[] buffer = new byte[(int) file.length() - SIZE_FILE_WITH_KEY];
+            byte[] buffer;
+            if (password != null) {
+                buffer = new byte[(int) file.length() - SIZE_FILE_WITH_KEY];
+            } else {
+                buffer = new byte[(int) file.length()];
+            }
             FilesManager.readFile(bufferedReader, buffer);
 
             if (isStatusBase64) {

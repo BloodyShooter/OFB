@@ -113,13 +113,13 @@ public class MyApp extends Application{
             base64.setSelected(isStatusBase64);
         });
         tgBase64.setTooltip(new Tooltip("Использовать транспортное кодирование при работе программы"));
-        tgWithKey = new RadioButton("Ипользовать ключ сеанса");
+        tgWithKey = new RadioButton("Ипользовать пароль");
         tgWithKey.setSelected(isStatusWithKey);
         tgWithKey.setOnAction(event -> {
             isStatusWithKey = !isStatusWithKey;
             withKey.setSelected(isStatusWithKey);
         });
-        tgWithKey.setTooltip(new Tooltip("Ипользовать ключ сеанса"));
+        tgWithKey.setTooltip(new Tooltip("Ипользовать свой пароль для большей сохраности данных"));
 
         Separator separator1 = new Separator();
         Separator separator2 = new Separator();
@@ -164,7 +164,7 @@ public class MyApp extends Application{
 
         arch = new CheckMenuItem("Архивация");
         base64 = new CheckMenuItem("Трансп кодирование");
-        withKey = new CheckMenuItem("Ключ сеанса");
+        withKey = new CheckMenuItem("Пароль");
         arch.setSelected(isStatusArch);
         base64.setSelected(isStatusBase64);
         withKey.setSelected(isStatusWithKey);
@@ -206,14 +206,14 @@ public class MyApp extends Application{
     }
 
     private void runEncrypt() {
-        if (isStatusWithKey) {
+        if (!isStatusWithKey) {
             lblStatus.setText("Шиврование: в процессе");
             lockActionButton();
             Task newTask = new Task() {
                 @Override
                 protected Object call() throws Exception {
                     try {
-                        cryptographerOFB.encryptInParts(txtEncrypt.getText());
+                        cryptographerOFB.encrypt(txtEncrypt.getText(), null, isStatusArch, isStatusBase64);
                     } catch (FileNotFoundException e) {
                         setStatusText("Шифрование: файл не найден");
                     } catch (Exception e) {
@@ -259,14 +259,14 @@ public class MyApp extends Application{
     }
 
     private void runDecrypt() {
-        if (isStatusWithKey) {
+        if (!isStatusWithKey) {
             lblStatus.setText("Расшифровка: в процессе");
             lockActionButton();
             Task newTask = new Task() {
                 @Override
                 protected Object call() throws Exception {
                     try {
-                        cryptographerOFB.decryptInParts(txtDecrypt.getText());
+                        cryptographerOFB.decrypt(txtDecrypt.getText(), null, isStatusArch, isStatusBase64);
                     } catch (FileNotFoundException | KeyException ex) {
                         setStatusText("Расшифровка: файл не найден");
                     } catch (Exception e) {
