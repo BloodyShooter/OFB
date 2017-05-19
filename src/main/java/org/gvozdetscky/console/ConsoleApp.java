@@ -4,9 +4,12 @@ import org.gvozdetscky.exception.KeyException;
 import org.gvozdetscky.logic.CryptographerOFB;
 
 import java.io.Console;
+import java.io.File;
 import java.io.FileNotFoundException;
 
 public class ConsoleApp {
+
+    private final static int COUNT_ARGS = 2;
 
     private CryptographerOFB cryptographerOFB;
     private Console console;
@@ -27,6 +30,12 @@ public class ConsoleApp {
         consoleDialogForUser();
 
         action(args);
+
+        showInfo();
+    }
+
+    private void showInfo() {
+        System.out.println("Операция прошла успешно");
     }
 
     private void action(String[] args) throws FileNotFoundException, KeyException {
@@ -38,6 +47,22 @@ public class ConsoleApp {
     }
 
     private void consoleDialogForUser() {
+        isUsePassword();
+        isUseArch();
+        isUseBase64();
+    }
+
+    private void isUseBase64() {
+        System.out.print("Использовать трансп. кодирование? ");
+        isBase64 = console.readLine().equals("y");
+    }
+
+    private void isUseArch() {
+        System.out.print("Использовать архивацию? ");
+        isArch = console.readLine().equals("y");
+    }
+
+    private void isUsePassword() {
         System.out.print("Использовать пароль? ");
         if (console.readLine().equals("y")) {
             System.out.print("Введите пароль ");
@@ -45,10 +70,6 @@ public class ConsoleApp {
         } else {
             password = null;
         }
-        System.out.print("Использовать архивацию? ");
-        isArch = console.readLine().equals("y");
-        System.out.print("Использовать трансп. кодирование? ");
-        isBase64 = console.readLine().equals("y");
     }
 
     private void decrypt(String arg) throws KeyException, FileNotFoundException {
@@ -60,9 +81,35 @@ public class ConsoleApp {
     }
 
     private void validation(String args[]) {
-        if (args.length < 2) {
+        if (isCountArgsValidation(args)) {
             System.err.println("Неправильное количество аргументов");
+            showPrompt();
+            System.exit(1);
+        } else if (isNotExistFile(args[0])) {
+            System.err.println("Неправильный путь к файлу");
+            showPrompt();
+            System.exit(1);
+        } else if (!(args[1].equals("e") || args[1].equals("d"))) {
+            System.err.println("Неправильный второй аргумент");
+            showPrompt();
             System.exit(1);
         }
+    }
+
+    private boolean isNotExistFile(String pathFile) {
+        return !(new File(pathFile).exists());
+    }
+
+    private boolean isCountArgsValidation(String args[]) {
+        return args.length < COUNT_ARGS;
+    }
+
+    private void showPrompt() {
+        System.out.println();
+        System.out.println("Использование: OFB.jar полный_путь_к_файлу e | d");
+        System.out.println("Пример");
+        System.out.println("OFB.jar C:/test.txt e");
+        System.out.println("OFB.jar C:/test.txt.enc d");
+        System.out.println();
     }
 }
