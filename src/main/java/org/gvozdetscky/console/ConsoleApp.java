@@ -17,6 +17,7 @@ public class ConsoleApp {
     private boolean isArch;
     private boolean isBase64;
     private String password;
+    //dfhdfhdf
 
     public ConsoleApp() {
         cryptographerOFB = new CryptographerOFB();
